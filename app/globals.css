@@ -1,11 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand palette */
+  --brand-white: #ffffff;
+  --brand-black: #000000;
+  --brand-tan: #d4c298;
+
+  --background: var(--brand-white);
+  --foreground: var(--brand-black);
 }
 
 @theme inline {
+  --color-brand-white: var(--brand-white);
+  --color-brand-black: var(--brand-black);
+  --color-brand-tan: var(--brand-tan);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);

@@ -1,0 +1,24 @@
+---
+description: Brand color palette (white, black, tan) and usage for FH Connect
+alwaysApply: true
+---
+
+# Brand Color Palette
+
+Use these three colors consistently. Do not introduce other accent or primary colors unless explicitly requested.
+
+## Values
+
+| Name  | Hex     | CSS variable   | Tailwind usage example   |
+|-------|---------|----------------|--------------------------|
+| White | `#FFFFFF` | `var(--brand-white)` | `bg-brand-white`, `text-brand-white` |
+| Black | `#000000` | `var(--brand-black)` | `bg-brand-black`, `text-brand-black` |
+| Tan   | `#D4C298` | `var(--brand-tan)`   | `bg-brand-tan`, `text-brand-tan`   |
+
+## Usage (emulate reference designs)
+
+- **White (#FFFFFF):** Primary text on dark backgrounds (logo, nav, headlines); background for secondary/outline buttons; main content backgrounds; text on black buttons.
+- **Black (#000000):** Text on white buttons and light backgrounds; solid backgrounds for headers, footers, and mission/info strips; primary CTA button background; borders and thin dividers.
+- **Tan (#D4C298):** Accent only—highlight key words in headlines or mission text; background for distinct sections or diagonal dividers; subtle header/brand accents. Use sparingly.
+
+Prefer semantic use (e.g. black for primary CTAs, white for content areas, tan for accents) over decorative variety.
