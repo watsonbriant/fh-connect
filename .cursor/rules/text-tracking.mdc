@@ -1,0 +1,16 @@
+---
+description: All displayed text should use tracking-tight
+alwaysApply: true
+---
+
+# Text Tracking
+
+Any text displayed on the site must use the `tracking-tight` Tailwind class for letter-spacing consistency.
+
+Apply `tracking-tight` to:
+- Headings (h1, h2, h3, etc.)
+- Paragraphs and body text
+- Navigation links and buttons
+- Labels, captions, and UI text
+
+Add it to the element's `className` alongside existing classes (e.g. `className="text-lg font-semibold tracking-tight"`).

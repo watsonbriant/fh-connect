@@ -6,7 +6,7 @@ import { useState } from "react";
 const NAV_ITEMS: { label: string; href: string; children: { label: string; href: string }[] }[] = [
   { label: "Join Us.", href: "#", children: [] },
   { label: "Who We Are.", href: "#", children: [{ label: "Sit With Me", href: "#" }, { label: "Vision + Beliefs", href: "#" }, { label: "Our Campuses", href: "#" }, { label: "Our Pastors", href: "#" }, { label: "Job Openings", href: "#" }, { label: "Download the FH App", href: "#" }] },
-  { label: "Get Connected.", href: "#", children: [{ label: "Placeholder", href: "#" }, { label: "Small Groups", href: "#" }] },
+  { label: "Get Connected.", href: "#", children: [{ label: "Connect With Us", href: "#" }, { label: "Upcoming Events", href: "#" }, { label: "Join a LifeGroup", href: "#" }, { label: "FHKids", href: "#" }, { label: "Vertical Youth", href: "#" }, { label: "MVMNT Young Adults", href: "#" }, { label: "Strong Men", href: "#" }, { label: "Authentic Women", href: "#" }, { label: "FHConnect", href: "#" }] },
   { label: "Your Next Steps.", href: "#", children: [{ label: "Placeholder", href: "#" }] },
   { label: "Watch + Listen.", href: "#", children: [{ label: "Placeholder", href: "#" }, { label: "Sermons", href: "#" }, { label: "Podcast", href: "#" }] },
   { label: "Get Support.", href: "#", children: [{ label: "Placeholder", href: "#" }, { label: "Care", href: "#" }, { label: "Prayer", href: "#" }] },
@@ -18,7 +18,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full text-brand-white shadow-[0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-none" style={{ backgroundColor: '#000000', isolation: 'isolate' }}>
+    <header className="sticky top-0 z-50 w-full tracking-tight text-brand-white shadow-[0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-none" style={{ backgroundColor: '#000000', isolation: 'isolate' }}>
       <div className="relative mx-auto flex h-14 min-h-[44px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
         {/* Spacer for mobile so logo can be centered (same width as hamburger) */}
         <div className="w-11 shrink-0 xl:hidden" aria-hidden />
@@ -50,7 +50,7 @@ export default function Header() {
                     href={item.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="min-h-[44px] px-3 py-2 text-sm font-[550] text-brand-white hover:text-brand-tan"
+                    className="px-3 py-2 text-xs font-[600] tracking-tight text-brand-white hover:text-brand-tan"
                   >
                     {item.label}
                   </a>
@@ -58,7 +58,7 @@ export default function Header() {
                   <>
                     <button
                       type="button"
-                      className="min-h-[44px] px-3 py-2 text-sm font-[550] text-brand-white hover:text-brand-tan"
+                      className="px-3 py-2 text-xs font-[600] tracking-tight text-brand-white hover:text-brand-tan"
                       aria-expanded={openDropdown === item.label}
                       aria-haspopup="true"
                       onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
@@ -67,7 +67,7 @@ export default function Header() {
                     </button>
                     {item.children.length > 0 && (
                   <div
-                    className={`absolute left-0 top-full min-w-[180px] rounded border border-brand-black/20 bg-brand-white py-1 shadow-lg transition-all duration-200 ${
+                    className={`absolute left-0 top-full min-w-[180px] rounded border border-brand-black/20 bg-brand-white shadow-lg transition-all duration-200 ${
                       openDropdown === item.label
                         ? "opacity-100 translate-y-0 pointer-events-auto"
                         : "opacity-0 -translate-y-2 pointer-events-none"
@@ -78,7 +78,7 @@ export default function Header() {
                       <Link
                         key={child.label}
                         href={child.href}
-                        className="block px-4 py-2 text-sm text-brand-black hover:bg-brand-tan/20"
+                        className="block px-4 py-1 text-xs tracking-tight text-brand-black hover:bg-brand-tan/80"
                         role="menuitem"
                       >
                         {child.label}
@@ -93,7 +93,7 @@ export default function Header() {
           </nav>
           <Link
             href="#"
-            className="items-center justify-center rounded bg-brand-tan px-2 py-1 text-base font-semibold text-brand-black hover:bg-brand-tan/90 ml-4"
+            className="items-center justify-center rounded bg-brand-tan px-2 py-1 text-sm font-semibold tracking-tight text-brand-black hover:bg-brand-tan/90 ml-4"
           >
             Give
           </Link>
@@ -150,7 +150,7 @@ export default function Header() {
                   href={item.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex w-full min-h-[44px] items-center px-4 py-1.5 text-left text-sm font-[550] text-brand-white hover:bg-white/5"
+                  className="flex w-full items-center px-4 py-1.5 text-left text-sm font-[600] tracking-tight text-brand-white hover:bg-white/5"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item.label}
@@ -159,7 +159,7 @@ export default function Header() {
                 <>
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between px-4 py-1.5 text-left text-sm font-[550] text-brand-white hover:bg-white/5"
+                    className="flex w-full items-center justify-between px-4 py-1.5 text-left text-sm font-[600] tracking-tight text-brand-white hover:bg-white/5"
                     onClick={() => setOpenDropdown(openDropdown === item.label ? null : item.label)}
                     aria-expanded={openDropdown === item.label}
                   >
@@ -185,7 +185,7 @@ export default function Header() {
                     <Link
                       key={child.label}
                       href={child.href}
-                      className="block py-0.5 pl-4 text-sm text-brand-white/90 hover:text-brand-tan"
+                      className="block py-0.5 pl-4 text-sm tracking-tight text-brand-white/90 hover:text-brand-tan"
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       {child.label}
@@ -201,13 +201,13 @@ export default function Header() {
           <div className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3">
             <Link
               href="#"
-              className="flex shrink-0 items-center justify-center rounded bg-brand-tan px-2 py-1 text-base font-semibold text-brand-black hover:bg-brand-tan/90"
+              className="flex shrink-0 items-center justify-center rounded bg-brand-tan px-2 py-1 text-base font-semibold tracking-tight text-brand-black hover:bg-brand-tan/90"
             >
               Give
             </Link>
             <button
               type="button"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-brand-white hover:text-brand-tan"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded tracking-tight text-brand-white hover:text-brand-tan"
               aria-label="Account: log in, sign up, or log out"
             >
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
