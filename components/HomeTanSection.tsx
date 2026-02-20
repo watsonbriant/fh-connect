@@ -13,7 +13,7 @@ const COLUMNS = [
       "Central Campus",
       "South End Campus",
       "Lake Norman Campus",
-      "Ballantyne/Ft. Mill Campus",
+      "Ballantyne Campus",
       "Online Campus",
     ],
   },
@@ -85,7 +85,7 @@ export default function HomeTanSection() {
                             <button
                               type="button"
                               onClick={() => toggle(key)}
-                              className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:text-brand-tan"
+                              className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:text-brand-tan leading-[0.875rem]"
                             >
                               <span className="font-semibold">{item}</span>
                               <span
@@ -100,7 +100,7 @@ export default function HomeTanSection() {
                             >
                               <div className="min-h-0 overflow-hidden">
                                 <div className="border-t border-brand-black/5 pb-3 pt-1">
-                                  <p className="text-sm tracking-tight text-brand-black/80">
+                                  <p className="text-xs tracking-tight text-brand-black/80">
                                     Placeholder content for {item}.
                                   </p>
                                 </div>
