@@ -8,7 +8,7 @@ const COLUMNS = [
   {
     title: "Join us.",
     icon: MapPin,
-    image: "/home/join-us.png",
+    image: "/home/join-us.jpg",
     items: [
       "Central Campus",
       "South End Campus",
@@ -20,7 +20,7 @@ const COLUMNS = [
   {
     title: "Learn about us.",
     icon: BookOpen,
-    image: "/home/learn-about-us.png",
+    image: "/home/learn-about-us.jpg",
     items: [
       "Vision + Beliefs",
       "Become a Member",
@@ -31,7 +31,7 @@ const COLUMNS = [
   {
     title: "Connect with us.",
     icon: Users,
-    image: "/home/connect-with-us.png",
+    image: "/home/connect-with-us.jpg",
     items: [
       "Find Your Community",
       "Strong Men",
@@ -49,7 +49,7 @@ export default function HomeTanSection() {
   }
 
   return (
-    <section className="bg-brand-tan px-4 py-16 sm:px-6 lg:px-8">
+    <section className="bg-brand-tan px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="grid gap-8 md:grid-cols-3">
           {COLUMNS.map((col) => {
@@ -57,7 +57,7 @@ export default function HomeTanSection() {
             return (
               <article
                 key={col.title}
-                className="overflow-hidden rounded-3xl border border-brand-black/10 bg-brand-white shadow-lg"
+                className="overflow-hidden rounded-3xl border border-brand-black bg-brand-white shadow-lg transition-transform duration-200 hover:scale-105"
               >
                 <div className="relative aspect-[4/3] w-full overflow-hidden">
                   <Image
@@ -67,13 +67,11 @@ export default function HomeTanSection() {
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
-                  <div className="absolute bottom-3 left-3 rounded-lg bg-brand-black/70 p-2 text-brand-white">
-                    <Icon className="h-5 w-5" aria-hidden />
-                  </div>
                 </div>
                 <div className="px-5 py-4">
-                  <h2 className="mb-3 text-xl font-bold tracking-tight text-brand-black">
-                    {col.title}
+                  <h2 className="mb-3 flex items-center justify-between gap-2 text-xl font-bold tracking-tight text-brand-black">
+                    <span>{col.title}</span>
+                    <Icon className="h-6 w-6 shrink-0" aria-hidden />
                   </h2>
                   <ul className="divide-y divide-brand-black/10">
                     {col.items.map((item) => {
@@ -81,26 +79,34 @@ export default function HomeTanSection() {
                       const isOpen = openKeys[key];
                       return (
                         <li key={item}>
-                          <button
-                            type="button"
-                            onClick={() => toggle(key)}
-                            className="flex w-full items-center justify-between gap-2 py-3 text-left text-sm font-medium tracking-tight text-brand-black hover:text-brand-tan"
+                          <div
+                            className={isOpen ? "bg-brand-tan/50 -mx-5 px-5" : ""}
                           >
-                            <span>{item}</span>
-                            <span
-                              className={`shrink-0 transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}
-                              aria-hidden
+                            <button
+                              type="button"
+                              onClick={() => toggle(key)}
+                              className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:text-brand-tan"
                             >
-                              <Plus className="h-4 w-4" />
-                            </span>
-                          </button>
-                          {isOpen && (
-                            <div className="overflow-hidden border-t border-brand-black/5 pb-3 pl-0 pr-4 pt-1">
-                              <p className="text-sm tracking-tight text-brand-black/80">
-                                Placeholder content for {item}.
-                              </p>
+                              <span className="font-semibold">{item}</span>
+                              <span
+                                className={`shrink-0 transition-transform duration-200 ${isOpen ? "rotate-45" : ""}`}
+                                aria-hidden
+                              >
+                                <Plus className="h-4 w-4" />
+                              </span>
+                            </button>
+                            <div
+                              className={`grid transition-[grid-template-rows] duration-200 ease-out ${isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}
+                            >
+                              <div className="min-h-0 overflow-hidden">
+                                <div className="border-t border-brand-black/5 pb-3 pt-1">
+                                  <p className="text-sm tracking-tight text-brand-black/80">
+                                    Placeholder content for {item}.
+                                  </p>
+                                </div>
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </li>
                       );
                     })}
