@@ -20,12 +20,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 w-full tracking-tight text-brand-white shadow-[0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-none" style={{ backgroundColor: '#000000', isolation: 'isolate' }}>
       <div className="relative mx-auto flex h-14 min-h-[44px] max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        {/* Spacer for mobile so logo can be centered (same width as hamburger) */}
-        <div className="w-11 shrink-0 xl:hidden" aria-hidden />
-        {/* Logo: centered on mobile, left-aligned on desktop */}
+        {/* Logo: left-aligned on mobile and desktop */}
         <Link
           href="/"
-          className="absolute left-1/2 flex h-full shrink-0 -translate-x-1/2 py-3 xl:static xl:left-auto xl:translate-x-0"
+          className="flex h-full shrink-0 py-3"
           aria-label="Freedom House home"
         >
           <img
