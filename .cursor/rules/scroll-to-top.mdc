@@ -1,0 +1,15 @@
+---
+description: Show up-arrow button when user scrolls down; click scrolls to top
+alwaysApply: true
+---
+
+# Scroll-to-Top Button
+
+When page content is taller than the viewport and the user has scrolled below the top:
+
+- Show an **up arrow** in the **bottom-right corner** of the viewport.
+- Clicking it **scrolls the page to the top**.
+- The button should only appear when the user has scrolled down (e.g. past a small threshold like 100px).
+- Use a fixed position so it stays in the corner while scrolling.
+
+The `ScrollToTop` component is rendered once in the root layout (`app/layout.tsx`), so it appears on every page automatically. Do not import or add it to individual page components.
