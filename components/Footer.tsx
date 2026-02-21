@@ -88,7 +88,7 @@ export default function Footer() {
               rel="noopener noreferrer"
               className="text-brand-white/90 underline hover:text-brand-tan font-bold"
             >
-              An XYZ Solution
+              an [xyz] solution
             </Link>
             .
           </p>
