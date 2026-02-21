@@ -29,7 +29,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         href="https://instagram.com/freedomhouse"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1.5 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
         <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhouse
@@ -58,7 +58,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         href="https://instagram.com/freedomhousesouthend"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1.5 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
         <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhousesouthend
@@ -87,7 +87,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         href="https://instagram.com/freedomhouselkn"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1.5 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
         <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhouselkn
@@ -116,7 +116,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         href="https://instagram.com/freedomhouseballantyne"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1.5 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
         <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhouseballantyne
@@ -147,6 +147,138 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         <span className="font-semibold">Sunday Services</span>
         <span className="font-normal">9:15a + 11a</span>
       </Link>
+    </div>
+  ),
+};
+
+/** Expandable content for Learn about us. items */
+const LEARN_ABOUT_US_CONTENT: Record<string, React.ReactNode> = {
+  "Vision + Beliefs": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        Learn about what we believe, read our vision statement, and what are our
+        core values as a church.
+      </p>
+    </div>
+  ),
+  "Become a Member": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        Get On Track is our pathway to membership at Freedom House. Your first
+        step is to connect with one of our campus teams at one of our Get On
+        Track dinners.
+      </p>
+    </div>
+  ),
+  "Kids + Students + Young Adults": (
+    <div className="space-y-3 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <div>
+        <p>
+          <span className="font-semibold">FHKids:</span> We've created
+          experiences for each grade level from 6 weeks to 12th grade to
+          introduce them to Jesus and help them learn the Bible through engaging
+          lessons and fun activities!
+        </p>
+        <p className="mt-1.5">
+          <Link
+            href="https://instagram.com/freedomhouse_kids"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+          >
+            <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            @freedomhouse_kids
+          </Link>
+        </p>
+      </div>
+      <div>
+        <p>
+          <span className="font-semibold">Vertical Youth:</span> Crazy games,
+          relevant messages, fun times! Vertical is the student ministry of
+          Freedom House for grades 7 through 12. Join us!
+        </p>
+        <p className="mt-1.5">
+          <Link
+            href="https://instagram.com/verticalfh"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+          >
+            <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            @verticalfh
+          </Link>
+        </p>
+      </div>
+      <div>
+        <p>
+          <span className="font-semibold">MVMNT Young Adults:</span> MVMNT is
+          the community of young adults at Freedom House Church. If you are
+          between the ages of 18 to 29, we hope you'll be a part of a MVMNT
+          LifeGroup, attend a House Party, and dive into this exciting young
+          adult community.
+        </p>
+        <p className="mt-1.5">
+          <Link
+            href="https://instagram.com/fhmvmnt"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
+          >
+            <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            @fhmvmnt
+          </Link>
+        </p>
+      </div>
+    </div>
+  ),
+  "Upcoming Events": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        Stay up-to-date with all that's happening at Freedom House!
+      </p>
+    </div>
+  ),
+};
+
+/** Expandable content for Connect with us. items */
+const CONNECT_WITH_US_CONTENT: Record<string, React.ReactNode> = {
+  "Find Your Community": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        LifeGroups will meet all over Charlotte, every day of the week to do
+        life together! Study groups, social groups, and more — there's a
+        LifeGroup for you!
+      </p>
+    </div>
+  ),
+  "Strong Men": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        Our Strong men's movement hosts two types of events periodically
+        throughout the year: Strong Saturdays and Strong Men's Breakfasts.
+      </p>
+    </div>
+  ),
+  "Authentic Women": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        Freedom House Church is about equipping people to experience Christ's
+        freedom every day. And through AUTHENTIC we are freeing women to be all
+        God has called them to be.
+      </p>
+    </div>
+  ),
+  "Get Involved": (
+    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
+      <p>
+        Serving is our win! Freedom House is supported by our Dream Team
+        volunteer teams spanning over 25 different areas. Find a serve to
+        utilize your gifts.
+      </p>
+      <p>
+        Find opportunities to serve in the Charlotte community through numerous
+        outreach organizations we partner with.
+      </p>
     </div>
   ),
 };
@@ -260,6 +392,10 @@ export default function HomeTanSection() {
                                 <div className="flex justify-center border-t border-brand-black/10 py-2">
                                   {col.title === "Join us." && JOIN_US_CONTENT[item] ? (
                                     JOIN_US_CONTENT[item]
+                                  ) : col.title === "Learn about us." && LEARN_ABOUT_US_CONTENT[item] ? (
+                                    LEARN_ABOUT_US_CONTENT[item]
+                                  ) : col.title === "Connect with us." && CONNECT_WITH_US_CONTENT[item] ? (
+                                    CONNECT_WITH_US_CONTENT[item]
                                   ) : (
                                     <p className="text-xs tracking-tight text-brand-black/80">
                                       Placeholder content for {item}.
