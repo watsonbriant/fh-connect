@@ -1,6 +1,7 @@
 "use client";
 
-import { MapPin, BookOpen, Users, Plus, Instagram } from "lucide-react";
+import { MapPin, BookOpen, Users, Plus } from "lucide-react";
+import { InstagramIcon } from "@/components/SocialIcons";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -31,7 +32,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         rel="noopener noreferrer"
         className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
-        <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhouse
       </Link>
     </div>
@@ -60,7 +61,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         rel="noopener noreferrer"
         className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
-        <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhousesouthend
       </Link>
     </div>
@@ -89,7 +90,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         rel="noopener noreferrer"
         className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
-        <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhouselkn
       </Link>
     </div>
@@ -118,7 +119,7 @@ const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
         rel="noopener noreferrer"
         className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
       >
-        <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         @freedomhouseballantyne
       </Link>
       <Link
@@ -186,7 +187,7 @@ const LEARN_ABOUT_US_CONTENT: Record<string, React.ReactNode> = {
             rel="noopener noreferrer"
             className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
           >
-            <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
             @freedomhouse_kids
           </Link>
         </p>
@@ -204,7 +205,7 @@ const LEARN_ABOUT_US_CONTENT: Record<string, React.ReactNode> = {
             rel="noopener noreferrer"
             className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
           >
-            <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
             @verticalfh
           </Link>
         </p>
@@ -224,7 +225,7 @@ const LEARN_ABOUT_US_CONTENT: Record<string, React.ReactNode> = {
             rel="noopener noreferrer"
             className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
           >
-            <Instagram className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
             @fhmvmnt
           </Link>
         </p>

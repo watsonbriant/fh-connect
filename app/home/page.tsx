@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getStoragePublicUrl } from "@/lib/supabase";
 import HomeTanSection from "@/components/HomeTanSection";
+import StayConnectedSection from "@/components/StayConnectedSection";
 
 export default function Home() {
   const bucket = process.env.NEXT_PUBLIC_HOMEPAGE_VIDEO_BUCKET;
@@ -59,6 +60,7 @@ export default function Home() {
       </section>
 
       <HomeTanSection />
+      <StayConnectedSection />
     </main>
   );
 }
