@@ -74,9 +74,18 @@ export default function AuthModal({
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setMessage(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      showMessage("error", "Please enter your email.");
+      return;
+    }
+    if (!password) {
+      showMessage("error", "Please enter your password.");
+      return;
+    }
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: trimmedEmail, password });
     setLoading(false);
     if (error) {
       showMessage("error", error.message);

@@ -77,14 +77,30 @@ export default function Header() {
 
   const closeAccountMenu = () => setAccountMenuOpen(false);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(() => {
     setAccountMenuOpen(false);
     setMobileMenuOpen(false);
     const wasOnFhconnect = pathname?.startsWith("/fhconnect");
-    await supabase.auth.signOut();
-    refreshAuth();
+
+    // Clear user/profile in header immediately so the avatar disappears without waiting for signOut()
+    setUser(null);
+    setProfile(null);
+
+    // Show toast and schedule redirect immediately so the user gets feedback even if signOut() is slow or blocks
     showLogoutToast();
-    if (wasOnFhconnect) router.replace("/home");
+    if (wasOnFhconnect) {
+      const REDIRECT_DELAY_MS = 1000;
+      setTimeout(() => {
+        router.replace("/home");
+      }, REDIRECT_DELAY_MS);
+    }
+
+    // Run signOut in the background so we don't block the UI
+    supabase.auth.signOut().then(() => {
+      refreshAuth();
+    }).catch(() => {
+      refreshAuth();
+    });
   }, [refreshAuth, pathname, showLogoutToast, router]);
 
   const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path, profile.updated_at) : null;

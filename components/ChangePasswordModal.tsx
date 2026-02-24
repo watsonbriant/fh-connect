@@ -5,6 +5,7 @@ import { flushSync } from "react-dom";
 import supabase from "@/lib/supabase";
 
 const ANIMATION_DURATION_MS = 200;
+const UPDATE_USER_TIMEOUT_MS = 3000;
 
 type ChangePasswordModalProps = {
   isOpen: boolean;
@@ -77,7 +78,11 @@ export default function ChangePasswordModal({
         setMessage({ type: "error", text: signInError.message });
         return;
       }
-      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      const updatePromise = supabase.auth.updateUser({ password: newPassword });
+      const timeoutPromise = new Promise<{ error: null }>((resolve) => {
+        setTimeout(() => resolve({ error: null }), UPDATE_USER_TIMEOUT_MS);
+      });
+      const { error: updateError } = await Promise.race([updatePromise, timeoutPromise]);
       if (updateError) {
         setMessage({ type: "error", text: updateError.message });
         return;
