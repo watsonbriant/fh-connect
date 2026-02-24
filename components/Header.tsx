@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import supabase from "@/lib/supabase";
 import { getProfile, getAvatarUrl, type Profile } from "@/lib/auth";
 import AuthModal from "@/components/AuthModal";
@@ -9,7 +9,7 @@ import AuthModal from "@/components/AuthModal";
 const NAV_ITEMS: { label: string; href: string; children: { label: string; href: string }[] }[] = [
   { label: "Join Us.", href: "#", children: [] },
   { label: "Who We Are.", href: "#", children: [{ label: "Sit With Me", href: "#" }, { label: "Vision + Beliefs", href: "#" }, { label: "Our Campuses", href: "#" }, { label: "Our Pastors", href: "#" }, { label: "Job Openings", href: "#" }, { label: "Download the FH App", href: "#" }] },
-  { label: "Get Connected.", href: "#", children: [{ label: "Connect With Us", href: "#" }, { label: "Upcoming Events", href: "#" }, { label: "Join a LifeGroup", href: "#" }, { label: "FHKids", href: "#" }, { label: "Vertical Youth", href: "#" }, { label: "MVMNT Young Adults", href: "#" }, { label: "Strong Men", href: "#" }, { label: "Authentic Women", href: "#" }, { label: "FHConnect", href: "#" }] },
+  { label: "Get Connected.", href: "#", children: [{ label: "Connect With Us", href: "#" }, { label: "Upcoming Events", href: "#" }, { label: "Join a LifeGroup", href: "#" }, { label: "FHKids", href: "#" }, { label: "Vertical Youth", href: "#" }, { label: "MVMNT Young Adults", href: "#" }, { label: "Strong Men", href: "#" }, { label: "Authentic Women", href: "#" }, { label: "FHConnect", href: "/fhconnect" }] },
   { label: "Your Next Steps.", href: "#", children: [{ label: "Join The FH Family", href: "#" }, { label: "Serve in the Church", href: "#" }, { label: "Serve Charlotte", href: "#" }, { label: "Serve Around the World", href: "#" }, { label: "Get Baptized", href: "#" }, { label: "Move Forward", href: "#" }, { label: "Internship", href: "#" }, { label: "TPUSA Faith", href: "#" }] },
   { label: "Watch + Listen.", href: "#", children: [{ label: "Watch Live Online", href: "#" }, { label: "Previous Messages", href: "#" }, { label: "Worship", href: "#" }, { label: "YouTube", href: "#" }, { label: "Podcast", href: "#" }] },
   { label: "Get Support.", href: "#", children: [{ label: "Need Prayer?", href: "#" }, { label: "Need a Pastor?", href: "#" }, { label: "Recommended Counselors", href: "#" }, { label: "Religious Exemption Letter", href: "#" }] },
@@ -20,8 +20,11 @@ export default function Header() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const accountMenuRef = useRef<HTMLDivElement>(null);
+  const accountMenuRefMobile = useRef<HTMLDivElement>(null);
 
   const refreshAuth = useCallback(async () => {
     const { data: { user: u } } = await supabase.auth.getUser();
@@ -42,10 +45,32 @@ export default function Header() {
     return () => subscription.unsubscribe();
   }, [refreshAuth]);
 
+  useEffect(() => {
+    if (!accountMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      const inDesktop = accountMenuRef.current?.contains(target);
+      const inMobile = accountMenuRefMobile.current?.contains(target);
+      if (!inDesktop && !inMobile) setAccountMenuOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAccountMenuOpen(false);
+    };
+    document.addEventListener("click", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("click", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountMenuOpen]);
+
   const openAccountModal = () => {
     setAuthModalOpen(true);
+    setAccountMenuOpen(false);
     setMobileMenuOpen(false);
   };
+
+  const closeAccountMenu = () => setAccountMenuOpen(false);
 
   const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path, profile.updated_at) : null;
   const profileInitials = profile
@@ -55,9 +80,11 @@ export default function Header() {
   const ProfileButton = ({ className }: { className?: string }) => (
     <button
       type="button"
-      onClick={openAccountModal}
+      onClick={() => setAccountMenuOpen((open) => !open)}
       className={`group ${className ?? ""}`}
       aria-label={user ? "Account and profile" : "Account: log in, sign up, or log out"}
+      aria-expanded={accountMenuOpen}
+      aria-haspopup="true"
     >
       {user && (avatarUrl || profileInitials) ? (
         avatarUrl ? (
@@ -163,7 +190,49 @@ export default function Header() {
           >
             Give
           </Link>
-          <ProfileButton className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded text-brand-white hover:text-brand-tan ml-2" />
+          <div className="relative" ref={accountMenuRef}>
+            <ProfileButton className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded text-brand-white hover:text-brand-tan ml-2" />
+            {accountMenuOpen && (
+              <div
+                className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded border border-brand-black/20 bg-brand-white py-1 shadow-lg"
+                role="menu"
+              >
+                {user ? (
+                  <>
+                    <Link
+                      href="/fhconnect"
+                      className="block px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-brand-tan/80"
+                      role="menuitem"
+                      onClick={closeAccountMenu}
+                    >
+                      FHConnect
+                    </Link>
+                    <button
+                      type="button"
+                      className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-brand-tan/80"
+                      role="menuitem"
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+                        refreshAuth();
+                        closeAccountMenu();
+                      }}
+                    >
+                      Log out
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-brand-tan/80"
+                    role="menuitem"
+                    onClick={openAccountModal}
+                  >
+                    Log in
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Mobile menu button — shown when viewport is below 7xl (1280px) */}
@@ -256,7 +325,8 @@ export default function Header() {
             </div>
           ))}
           {/* Give and profile underneath nav items */}
-          <div className="flex items-center justify-center gap-2 border-t border-white/10 px-4 py-3">
+          <div ref={accountMenuRefMobile} className="flex flex-col items-center gap-2 border-t border-white/10 px-4 py-3">
+            <div className="flex items-center justify-center gap-2">
             <Link
               href="#"
               className="flex shrink-0 items-center justify-center rounded bg-brand-tan px-2 py-1 text-base font-semibold tracking-tight text-brand-black hover:bg-brand-tan/90"
@@ -265,9 +335,10 @@ export default function Header() {
             </Link>
             <button
               type="button"
-              onClick={openAccountModal}
+              onClick={() => setAccountMenuOpen((open) => !open)}
               className="group flex h-11 w-11 shrink-0 items-center justify-center rounded tracking-tight text-brand-white hover:text-brand-tan relative"
               aria-label={user ? "Account and profile" : "Account: log in, sign up, or log out"}
+              aria-expanded={accountMenuOpen}
             >
               {user && (avatarUrl || profileInitials) ? (
                 avatarUrl ? (
@@ -283,7 +354,6 @@ export default function Header() {
                 )
               ) : (
                 <>
-                  {/* Same path for both: outline (default) and filled (hover) so the shape matches */}
                   <svg className="h-6 w-6 fill-none stroke-current text-brand-white transition-opacity group-hover:opacity-0" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
                   </svg>
@@ -293,6 +363,45 @@ export default function Header() {
                 </>
               )}
             </button>
+            </div>
+            {accountMenuOpen && (
+              <div className="w-full rounded border border-white/20 bg-brand-black/90 py-1" role="menu">
+                {user ? (
+                  <>
+                    <Link
+                      href="/fhconnect"
+                      className="block px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
+                      role="menuitem"
+                      onClick={() => { setAccountMenuOpen(false); setMobileMenuOpen(false); }}
+                    >
+                      FHConnect
+                    </Link>
+                    <button
+                      type="button"
+                      className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
+                      role="menuitem"
+                      onClick={async () => {
+                        await supabase.auth.signOut();
+                        refreshAuth();
+                        setAccountMenuOpen(false);
+                        setMobileMenuOpen(false);
+                      }}
+                    >
+                      Log out
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
+                    role="menuitem"
+                    onClick={openAccountModal}
+                  >
+                    Log in
+                  </button>
+                )}
+              </div>
+            )}
           </div>
           </nav>
         </div>
@@ -300,8 +409,6 @@ export default function Header() {
       <AuthModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        user={user}
-        profile={profile}
         onAuthChange={refreshAuth}
       />
     </header>
