@@ -1,7 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import supabase from "@/lib/supabase";
+import { getProfile, getAvatarUrl, type Profile } from "@/lib/auth";
+import AuthModal from "@/components/AuthModal";
 
 const NAV_ITEMS: { label: string; href: string; children: { label: string; href: string }[] }[] = [
   { label: "Join Us.", href: "#", children: [] },
@@ -16,6 +19,71 @@ const NAV_ITEMS: { label: string; href: string; children: { label: string; href:
 export default function Header() {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  const refreshAuth = useCallback(async () => {
+    const { data: { user: u } } = await supabase.auth.getUser();
+    setUser(u ? { id: u.id, email: u.email ?? undefined } : null);
+    if (u) {
+      const p = await getProfile(u.id);
+      setProfile(p);
+    } else {
+      setProfile(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshAuth();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      refreshAuth();
+    });
+    return () => subscription.unsubscribe();
+  }, [refreshAuth]);
+
+  const openAccountModal = () => {
+    setAuthModalOpen(true);
+    setMobileMenuOpen(false);
+  };
+
+  const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path, profile.updated_at) : null;
+  const profileInitials = profile
+    ? `${(profile.first_name || "").charAt(0)}${(profile.last_name || "").charAt(0)}`.toUpperCase() || "?"
+    : null;
+
+  const ProfileButton = ({ className }: { className?: string }) => (
+    <button
+      type="button"
+      onClick={openAccountModal}
+      className={`group ${className ?? ""}`}
+      aria-label={user ? "Account and profile" : "Account: log in, sign up, or log out"}
+    >
+      {user && (avatarUrl || profileInitials) ? (
+        avatarUrl ? (
+          <img
+            src={avatarUrl}
+            alt="Profile"
+            className="h-9 w-9 rounded-full object-cover ring-2 ring-brand-tan transition-colors hover:ring-brand-white"
+          />
+        ) : (
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-tan text-sm font-semibold tracking-tight text-brand-black ring-2 ring-brand-tan transition-colors hover:ring-brand-white">
+            {profileInitials}
+          </span>
+        )
+      ) : (
+        <>
+          {/* Same path for both: outline (default) and filled (hover) so the shape matches */}
+          <svg className="h-6 w-6 fill-none stroke-current text-brand-white transition-opacity group-hover:opacity-0" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          <svg className="absolute inset-0 m-auto h-6 w-6 fill-current text-brand-tan opacity-0 transition-opacity group-hover:opacity-100" viewBox="0 0 24 24" aria-hidden>
+            <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+        </>
+      )}
+    </button>
+  );
 
   return (
     <header className="sticky top-0 z-50 w-full tracking-tight text-brand-white shadow-[0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-none" style={{ backgroundColor: '#000000', isolation: 'isolate' }}>
@@ -95,15 +163,7 @@ export default function Header() {
           >
             Give
           </Link>
-          <button
-            type="button"
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded text-brand-white hover:text-brand-tan ml-2"
-            aria-label="Account: log in, sign up, or log out"
-          >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-          </button>
+          <ProfileButton className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded text-brand-white hover:text-brand-tan ml-2" />
         </div>
 
         {/* Mobile menu button — shown when viewport is below 7xl (1280px) */}
@@ -205,17 +265,45 @@ export default function Header() {
             </Link>
             <button
               type="button"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded tracking-tight text-brand-white hover:text-brand-tan"
-              aria-label="Account: log in, sign up, or log out"
+              onClick={openAccountModal}
+              className="group flex h-11 w-11 shrink-0 items-center justify-center rounded tracking-tight text-brand-white hover:text-brand-tan relative"
+              aria-label={user ? "Account and profile" : "Account: log in, sign up, or log out"}
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-              </svg>
+              {user && (avatarUrl || profileInitials) ? (
+                avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt="Profile"
+                    className="h-9 w-9 rounded-full object-cover ring-2 ring-brand-tan transition-colors hover:ring-brand-white"
+                  />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-tan text-sm font-semibold tracking-tight text-brand-black ring-2 ring-brand-tan transition-colors hover:ring-brand-white">
+                    {profileInitials}
+                  </span>
+                )
+              ) : (
+                <>
+                  {/* Same path for both: outline (default) and filled (hover) so the shape matches */}
+                  <svg className="h-6 w-6 fill-none stroke-current text-brand-white transition-opacity group-hover:opacity-0" viewBox="0 0 24 24" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                  <svg className="absolute inset-0 m-auto h-6 w-6 fill-current text-brand-tan opacity-0 transition-opacity group-hover:opacity-100" viewBox="0 0 24 24" aria-hidden>
+                    <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+                  </svg>
+                </>
+              )}
             </button>
           </div>
           </nav>
         </div>
       </div>
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        user={user}
+        profile={profile}
+        onAuthChange={refreshAuth}
+      />
     </header>
   );
 }
