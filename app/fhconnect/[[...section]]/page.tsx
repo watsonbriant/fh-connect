@@ -1,15 +1,24 @@
 "use client";
 
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
-import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
 import supabase from "@/lib/supabase";
 import { getProfile, getAvatarUrl, uploadAvatar, type Profile } from "@/lib/auth";
 import AvatarCropModal from "@/components/AvatarCropModal";
+import AuthModal from "@/components/AuthModal";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 
 const SECTIONS = ["Account", "Profile", "Giving", "Groups", "Serving"] as const;
 type Section = (typeof SECTIONS)[number];
 const SECTION_SLUGS = SECTIONS.map((s) => s.toLowerCase());
+
+const SECTION_HEADERS: Record<Section, string> = {
+  Account: "Account Settings",
+  Profile: "Profile Information",
+  Giving: "My Giving",
+  Groups: "My Groups",
+  Serving: "My Serves",
+};
 
 function sectionFromSlug(slug: string | undefined): Section {
   if (!slug) return "Account";
@@ -35,6 +44,8 @@ export default function FHConnectPage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
   const cropSourceUrlRef = useRef<string | null>(null);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [gateAuthModalOpen, setGateAuthModalOpen] = useState(false);
 
   const selectorContainerRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -79,10 +90,6 @@ export default function FHConnectPage() {
       subscription.unsubscribe();
     };
   }, [refreshAuth]);
-
-  useEffect(() => {
-    if (!user && !loading) router.replace("/");
-  }, [user, loading, router]);
 
   useEffect(() => {
     if (loading) return;
@@ -154,19 +161,44 @@ export default function FHConnectPage() {
     refreshAuth();
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.replace("/");
-  };
-
   const goToSection = (tab: Section) => {
     router.push(`/fhconnect/${tab.toLowerCase()}`);
   };
 
-  if (!user && !loading) return null;
-
   const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path, profile.updated_at) : null;
   const displayUrl = avatarPreview || avatarUrl;
+
+  if (!user && !loading && !changePasswordOpen) {
+    return (
+      <main className="min-h-screen bg-black-950 tracking-tight text-brand-white">
+        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 flex flex-col items-center justify-center min-h-[60vh]">
+          <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-brand-white sm:text-3xl">
+            FHConnect
+          </h1>
+          <div className="rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black px-6 py-8 text-center max-w-md">
+            <h2 className="mb-3 text-xl font-bold tracking-tight text-brand-black">
+              Sign in required
+            </h2>
+            <p className="mb-6 text-brand-black/80 tracking-tight text-sm">
+              You must be logged in to access FHConnect. Log in or create an account to continue.
+            </p>
+            <button
+              type="button"
+              onClick={() => setGateAuthModalOpen(true)}
+              className="rounded bg-brand-black px-5 py-2.5 text-sm font-semibold tracking-tight text-brand-white hover:bg-brand-black/90"
+            >
+              Log in
+            </button>
+          </div>
+        </div>
+        <AuthModal
+          isOpen={gateAuthModalOpen}
+          onClose={() => setGateAuthModalOpen(false)}
+          onAuthChange={refreshAuth}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-black-950 tracking-tight text-brand-white">
@@ -207,28 +239,43 @@ export default function FHConnectPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-brand-black/20 bg-brand-white shadow-xl text-brand-black">
-          <div className="flex items-center justify-between border-b border-brand-black/10 bg-brand-tan px-4 py-3 rounded-t-lg">
-            <h1 className="text-lg font-semibold tracking-tight text-brand-black">
-              FHConnect — {section}
-            </h1>
-            <Link
-              href="/"
-              className="rounded p-1 text-brand-black/70 hover:bg-brand-black/10 hover:text-brand-black"
-              aria-label="Back to home"
-            >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </Link>
-          </div>
-
+        <div className="overflow-hidden rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black">
           {loading ? (
-            <div className="flex min-h-[200px] items-center justify-center p-6">
-              <p className="tracking-tight text-brand-black/70">Loading…</p>
+            <div className="px-5 py-6">
+              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
+                {SECTION_HEADERS[section]}
+              </h2>
+              <div className="flex min-h-[160px] items-center justify-center">
+                <p className="tracking-tight text-brand-black/70">Loading…</p>
+              </div>
             </div>
           ) : section === "Account" && user ? (
-            <form onSubmit={handleSubmit} className="p-4 sm:p-6">
+            <div className="px-5 py-6">
+              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
+                {SECTION_HEADERS[section]}
+              </h2>
+              <label className="mb-4 block">
+                <span className="mb-1 block text-sm font-medium tracking-tight">Email</span>
+                <input
+                  type="email"
+                  value={profile?.email ?? user.email ?? ""}
+                  readOnly
+                  className="w-full rounded border border-brand-black/10 bg-brand-black/5 px-3 py-2 text-brand-black/70 tracking-tight"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => setChangePasswordOpen(true)}
+                className="rounded bg-brand-black px-4 py-2 text-sm font-semibold tracking-tight text-brand-white hover:bg-brand-black/90"
+              >
+                Change password
+              </button>
+            </div>
+          ) : section === "Profile" && user ? (
+            <form onSubmit={handleSubmit} className="px-5 py-6">
+              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
+                {SECTION_HEADERS[section]}
+              </h2>
               {message && (
                 <p
                   className={`mb-4 rounded px-3 py-2 text-sm tracking-tight ${
@@ -287,15 +334,6 @@ export default function FHConnectPage() {
                     />
                   </label>
                 </div>
-                <label className="block w-full">
-                  <span className="mb-1 block text-sm font-medium tracking-tight">Email</span>
-                  <input
-                    type="email"
-                    value={profile?.email ?? user.email ?? ""}
-                    readOnly
-                    className="w-full rounded border border-brand-black/10 bg-brand-black/5 px-3 py-2 text-brand-black/70 tracking-tight"
-                  />
-                </label>
               </div>
 
               <div className="mt-6 flex flex-col gap-2 border-t border-brand-black/10 pt-4">
@@ -306,18 +344,14 @@ export default function FHConnectPage() {
                 >
                   {saving ? "Saving…" : "Save changes"}
                 </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="w-full rounded bg-brand-tan px-4 py-2 text-sm font-semibold tracking-tight text-brand-black hover:bg-brand-tan/90"
-                >
-                  Log out
-                </button>
               </div>
             </form>
           ) : (
-            <div className="p-6 text-center">
-              <p className="text-brand-black/70 tracking-tight">{section} content coming soon.</p>
+            <div className="px-5 py-6">
+              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
+                {SECTION_HEADERS[section]}
+              </h2>
+              <p className="text-center text-brand-black/70 tracking-tight">{section} content coming soon.</p>
             </div>
           )}
         </div>
@@ -330,6 +364,11 @@ export default function FHConnectPage() {
           onCancel={handleCropCancel}
         />
       )}
+      <ChangePasswordModal
+        isOpen={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
+        userEmail={profile?.email ?? user?.email ?? ""}
+      />
     </main>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { LogoutToastProvider } from "@/contexts/LogoutToastContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -33,12 +34,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Header />
-        <div className="min-h-screen bg-black-950 text-white tracking-tight">
-          {children}
-        </div>
-        <Footer />
-        <ScrollToTop />
+        <LogoutToastProvider>
+          <Header />
+          <div className="min-h-screen bg-black-950 text-white tracking-tight">
+            {children}
+          </div>
+          <Footer />
+          <ScrollToTop />
+        </LogoutToastProvider>
       </body>
     </html>
   );

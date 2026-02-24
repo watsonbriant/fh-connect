@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import supabase from "@/lib/supabase";
 import { getProfile, getAvatarUrl, type Profile } from "@/lib/auth";
+import { useLogoutToast } from "@/contexts/LogoutToastContext";
 import AuthModal from "@/components/AuthModal";
 
 const NAV_ITEMS: { label: string; href: string; children: { label: string; href: string }[] }[] = [
@@ -17,6 +19,9 @@ const NAV_ITEMS: { label: string; href: string; children: { label: string; href:
 ];
 
 export default function Header() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { showLogoutToast } = useLogoutToast();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -71,6 +76,16 @@ export default function Header() {
   };
 
   const closeAccountMenu = () => setAccountMenuOpen(false);
+
+  const handleLogout = useCallback(async () => {
+    setAccountMenuOpen(false);
+    setMobileMenuOpen(false);
+    const wasOnFhconnect = pathname?.startsWith("/fhconnect");
+    await supabase.auth.signOut();
+    refreshAuth();
+    showLogoutToast();
+    if (wasOnFhconnect) router.replace("/home");
+  }, [refreshAuth, pathname, showLogoutToast, router]);
 
   const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path, profile.updated_at) : null;
   const profileInitials = profile
@@ -211,11 +226,7 @@ export default function Header() {
                       type="button"
                       className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-brand-tan/80"
                       role="menuitem"
-                      onClick={async () => {
-                        await supabase.auth.signOut();
-                        refreshAuth();
-                        closeAccountMenu();
-                      }}
+                      onClick={handleLogout}
                     >
                       Log out
                     </button>
@@ -380,12 +391,7 @@ export default function Header() {
                       type="button"
                       className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
                       role="menuitem"
-                      onClick={async () => {
-                        await supabase.auth.signOut();
-                        refreshAuth();
-                        setAccountMenuOpen(false);
-                        setMobileMenuOpen(false);
-                      }}
+                      onClick={handleLogout}
                     >
                       Log out
                     </button>
