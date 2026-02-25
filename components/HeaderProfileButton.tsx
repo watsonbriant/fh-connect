@@ -4,6 +4,7 @@ type Props = {
   avatarUrl: string | null;
   profileInitials: string | null;
   hasUser: boolean;
+  hasPendingInvites?: boolean;
   accountMenuOpen: boolean;
   onToggle: () => void;
   className?: string;
@@ -13,6 +14,7 @@ export default function HeaderProfileButton({
   avatarUrl,
   profileInitials,
   hasUser,
+  hasPendingInvites = false,
   accountMenuOpen,
   onToggle,
   className,
@@ -21,25 +23,37 @@ export default function HeaderProfileButton({
     <button
       type="button"
       onClick={onToggle}
-      className={`group ${className ?? ""}`}
+      className={`group relative ${className ?? ""}`}
       aria-label={
-        hasUser ? "Account and profile" : "Account: log in, sign up, or log out"
+        hasUser
+          ? hasPendingInvites
+            ? "Account and profile (you have household invitations)"
+            : "Account and profile"
+          : "Account: log in, sign up, or log out"
       }
       aria-expanded={accountMenuOpen}
       aria-haspopup="true"
     >
       {hasUser && (avatarUrl || profileInitials) ? (
-        avatarUrl ? (
-          <img
-            src={avatarUrl}
-            alt="Profile"
-            className="h-9 w-9 rounded-full object-cover ring-2 ring-brand-tan transition-colors hover:ring-brand-white"
-          />
-        ) : (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-tan text-sm font-semibold tracking-tight text-brand-black ring-2 ring-brand-tan transition-colors hover:ring-brand-white">
-            {profileInitials}
-          </span>
-        )
+        <>
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt="Profile"
+              className="h-9 w-9 rounded-full object-cover ring-2 ring-brand-tan transition-colors hover:ring-brand-white"
+            />
+          ) : (
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-tan text-sm font-semibold tracking-tight text-brand-black ring-2 ring-brand-tan transition-colors hover:ring-brand-white">
+              {profileInitials}
+            </span>
+          )}
+          {hasPendingInvites && (
+            <span
+              className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full bg-brand-tan ring-2 ring-brand-black"
+              aria-hidden
+            />
+          )}
+        </>
       ) : (
         <>
           <svg

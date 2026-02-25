@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, useCallback, useRef } from "react";
 import supabase from "@/lib/supabase";
 import { getProfile, getAvatarUrl, type Profile } from "@/lib/auth";
+import { getPendingInviteCount } from "@/lib/households";
 import { useLogoutToast } from "@/contexts/LogoutToastContext";
 import AuthModal from "@/components/AuthModal";
 import HeaderDesktopNav from "@/components/HeaderDesktopNav";
@@ -20,6 +21,7 @@ export default function Header() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const accountMenuRefMobile = useRef<HTMLDivElement>(null);
 
@@ -31,8 +33,14 @@ export default function Header() {
     if (u) {
       const p = await getProfile(u.id);
       setProfile(p);
+      if (p?.person_id) {
+        getPendingInviteCount(p.person_id).then(setPendingInviteCount);
+      } else {
+        setPendingInviteCount(0);
+      }
     } else {
       setProfile(null);
+      setPendingInviteCount(0);
     }
   }, []);
 
@@ -43,6 +51,16 @@ export default function Header() {
     } = supabase.auth.onAuthStateChange(() => refreshAuth());
     return () => subscription.unsubscribe();
   }, [refreshAuth]);
+
+  useEffect(() => {
+    const onInvitationsChanged = () => {
+      if (profile?.person_id) {
+        getPendingInviteCount(profile.person_id).then(setPendingInviteCount);
+      }
+    };
+    window.addEventListener("household-invitations-changed", onInvitationsChanged);
+    return () => window.removeEventListener("household-invitations-changed", onInvitationsChanged);
+  }, [profile?.person_id]);
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -118,6 +136,7 @@ export default function Header() {
           avatarUrl={avatarUrl}
           profileInitials={profileInitials}
           hasUser={!!user}
+          hasPendingInvites={pendingInviteCount > 0}
           onCloseAccountMenu={() => setAccountMenuOpen(false)}
           onLogout={handleLogout}
           onOpenAuthModal={openAccountModal}
@@ -178,6 +197,7 @@ export default function Header() {
         avatarUrl={avatarUrl}
         profileInitials={profileInitials}
         hasUser={!!user}
+        hasPendingInvites={pendingInviteCount > 0}
         onLogout={handleLogout}
         onOpenAuthModal={openAccountModal}
         onCloseAllMenus={() => {

@@ -2,17 +2,13 @@ import supabase from "@/lib/supabase";
 
 export type Household = {
   id: string;
-  street_address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  home_campus: string | null;
-  created_at: string;
-  updated_at: string;
+  street_address: string | null;
+  city: string | null;
+  state: string | null;
+  zip: string | null;
 };
 
-export type HouseholdMemberRole = "head" | "member";
-export type HouseholdRelationship = "married_to" | "in_a_relationship_with" | "parent_of";
+export type HouseholdMembershipType = "Head of Household" | "Child" | "Other";
 
 export type HouseholdMemberPerson = {
   id: string;
@@ -21,27 +17,29 @@ export type HouseholdMemberPerson = {
   email: string | null;
   preferred_name: string;
   avatar_path: string | null;
+  date_of_birth?: string;
+  household_membership_type: HouseholdMembershipType | null;
 };
 
 export type HouseholdMember = {
-  id: string;
-  household_id: string;
   person_id: string;
-  role: HouseholdMemberRole;
-  relationship: HouseholdRelationship | null;
-  created_at: string;
-  person?: HouseholdMemberPerson;
+  person: HouseholdMemberPerson;
+  household_membership_type: HouseholdMembershipType;
   has_account?: boolean;
-};
-
-/** Raw row from Supabase join; person may be single object or array. */
-type RawHouseholdMemberRow = Omit<HouseholdMember, "person" | "has_account"> & {
-  person?: HouseholdMemberPerson | HouseholdMemberPerson[] | null;
 };
 
 export type HouseholdWithMembers = Household & {
   members: HouseholdMember[];
-  display_name: string;
+};
+
+export type HouseholdInvitation = {
+  id: string;
+  household_id: string;
+  inviter_person_id: string;
+  invitee_person_id: string;
+  membership_type: HouseholdMembershipType;
+  created_at: string;
+  inviter?: { first_name: string; last_name: string; preferred_name: string };
 };
 
 export type CampusLocation = {
@@ -53,170 +51,305 @@ export type CampusLocation = {
   type: string;
 };
 
-/** Locations that are physical campuses (for home campus dropdown). */
-export async function getCampusLocations(): Promise<CampusLocation[]> {
-  const { data, error } = await supabase
-    .schema("connect")
-    .from("locations")
-    .select("location, address, city, state, zip, type")
-    .in("type", ["physical_campus", "physical_property"]);
-  if (error) return [];
-  return (data ?? []) as CampusLocation[];
+const MEMBERSHIP_ORDER: Record<HouseholdMembershipType, number> = {
+  "Head of Household": 0,
+  Child: 1,
+  Other: 2,
+};
+
+function sortMembers(members: HouseholdMember[]): HouseholdMember[] {
+  return [...members].sort((a, b) => {
+    const orderA = MEMBERSHIP_ORDER[a.household_membership_type] ?? 3;
+    const orderB = MEMBERSHIP_ORDER[b.household_membership_type] ?? 3;
+    if (orderA !== orderB) return orderA - orderB;
+    const lnA = (a.person?.last_name ?? "").toLowerCase();
+    const lnB = (b.person?.last_name ?? "").toLowerCase();
+    if (lnA !== lnB) return lnA.localeCompare(lnB);
+    const dobA = a.person?.date_of_birth ?? "";
+    const dobB = b.person?.date_of_birth ?? "";
+    return dobA.localeCompare(dobB);
+  });
 }
 
-/** Get the household the current user belongs to (if any), with members and person details. */
+/** Get the household the current user belongs to (by people.household), with members. */
 export async function getMyHousehold(personId: string): Promise<HouseholdWithMembers | null> {
-  const { data: membership } = await supabase
+  const { data: person, error: pError } = await supabase
     .schema("connect")
-    .from("household_members")
-    .select("household_id")
-    .eq("person_id", personId)
-    .limit(1)
+    .from("people")
+    .select("household")
+    .eq("id", personId)
     .single();
-  if (!membership?.household_id) return null;
+  if (pError || !person?.household) return null;
 
+  const householdId = person.household as string;
   const { data: household, error: hError } = await supabase
     .schema("connect")
     .from("households")
-    .select("*")
-    .eq("id", membership.household_id)
+    .select("id, street_address, city, state, zip")
+    .eq("id", householdId)
     .single();
   if (hError || !household) return null;
 
-  const { data: members, error: mError } = await supabase
+  const { data: peopleRows, error: peopleError } = await supabase
     .schema("connect")
-    .from("household_members")
-    .select(`
-      id, household_id, person_id, role, relationship, created_at,
-      person:people(id, first_name, last_name, email, preferred_name, avatar_path)
-    `)
-    .eq("household_id", household.id)
-    .order("role", { ascending: false })
-    .order("created_at", { ascending: true });
-  if (mError) return null;
+    .from("people")
+    .select("id, first_name, last_name, email, preferred_name, avatar_path, date_of_birth, household_membership_type")
+    .eq("household", householdId);
+  if (peopleError || !peopleRows?.length) {
+    return { ...(household as Household), members: [] };
+  }
 
-  const personIds = (members ?? []).map((m: { person_id: string }) => m.person_id);
+  const personIds = peopleRows.map((p: { id: string }) => p.id);
+  let accountSet = new Set<string>();
   const { data: idsWithAccount } = await supabase.schema("connect").rpc("person_ids_with_accounts", {
     person_ids: personIds,
   });
-  const accountSet = new Set<string>(
-    Array.isArray(idsWithAccount)
-      ? idsWithAccount.map((id: unknown) =>
+  if (Array.isArray(idsWithAccount)) {
+    accountSet = new Set(
+      idsWithAccount
+        .map((id: unknown) =>
           typeof id === "string" ? id : (id as { person_ids_with_accounts?: string })?.person_ids_with_accounts ?? ""
-        ).filter(Boolean)
-      : []
-  );
+        )
+        .filter(Boolean)
+    );
+  }
 
-  const membersWithAccount: HouseholdMember[] = (members ?? []).map((m: RawHouseholdMemberRow) => {
-    const person = Array.isArray(m.person) ? m.person[0] : m.person ?? undefined;
-    return {
-      id: m.id,
-      household_id: m.household_id,
-      person_id: m.person_id,
-      role: m.role,
-      relationship: m.relationship,
-      created_at: m.created_at,
-      person,
-      has_account: accountSet.has(m.person_id),
-    };
-  });
-
-  const firstHead = membersWithAccount.find((m) => m.role === "head");
-  const firstHeadLastName =
-    firstHead && firstHead.person ? (firstHead.person as { last_name: string }).last_name : "";
-  const display_name = [firstHeadLastName, household.street_address, household.city]
-    .filter(Boolean)
-    .join(" | ") || "My household";
+  const members: HouseholdMember[] = peopleRows.map((p: Record<string, unknown>) => ({
+    person_id: p.id as string,
+    person: {
+      id: p.id as string,
+      first_name: (p.first_name as string) ?? "",
+      last_name: (p.last_name as string) ?? "",
+      email: (p.email as string | null) ?? null,
+      preferred_name: (p.preferred_name as string) ?? "",
+      avatar_path: (p.avatar_path as string | null) ?? null,
+      date_of_birth: p.date_of_birth as string | undefined,
+      household_membership_type: (p.household_membership_type as HouseholdMembershipType | null) ?? null,
+    },
+    household_membership_type: (p.household_membership_type as HouseholdMembershipType) ?? "Other",
+    has_account: accountSet.has(p.id as string),
+  }));
 
   return {
     ...(household as Household),
-    members: membersWithAccount,
-    display_name,
+    members: sortMembers(members),
   };
 }
 
-/** Create a new household and add the given person as head. */
-export async function createHousehold(personId: string, address: {
-  street_address: string;
-  city: string;
-  state: string;
-  zip_code: string;
-  home_campus?: string | null;
-}): Promise<{ household: Household } | { error: string }> {
-  const { data: household, error: insertError } = await supabase
-    .schema("connect")
-    .from("households")
-    .insert({
-      street_address: address.street_address || "",
-      city: address.city || "",
-      state: address.state || "",
-      zip_code: address.zip_code || "",
-      home_campus: address.home_campus ?? null,
-    })
-    .select()
-    .single();
-  if (insertError || !household) return { error: insertError?.message ?? "Failed to create household" };
-
-  const { error: memberError } = await supabase
-    .schema("connect")
-    .from("household_members")
-    .insert({
-      household_id: household.id,
-      person_id: personId,
-      role: "head",
-      relationship: null,
-    });
-  if (memberError) {
-    await supabase.schema("connect").from("households").delete().eq("id", household.id);
-    return { error: memberError.message };
-  }
-  return { household: household as Household };
-}
-
-/** Update household address/campus (caller must be a head). */
+/** Update household address (caller must be a Head). */
 export async function updateHousehold(
   householdId: string,
   address: {
-    street_address?: string;
-    city?: string;
-    state?: string;
-    zip_code?: string;
-    home_campus?: string | null;
+    street_address?: string | null;
+    city?: string | null;
+    state?: string | null;
+    zip?: string | null;
   }
 ): Promise<{ error?: string }> {
   const { error } = await supabase
     .schema("connect")
     .from("households")
     .update({
-      ...address,
-      updated_at: new Date().toISOString(),
+      street_address: address.street_address ?? null,
+      city: address.city ?? null,
+      state: address.state ?? null,
+      zip: address.zip ?? null,
     })
     .eq("id", householdId);
   return { error: error?.message };
 }
 
-/** Add a person (by id) to the household. Fails if person is already in another household. */
-export async function addMemberToHousehold(
+/** Ensure this person has a household (create one if missing). Used after account creation / backfill gap. */
+export async function ensureHouseholdForPerson(personId: string): Promise<{ household_id: string } | { error: string }> {
+  const { data: person, error: pError } = await supabase
+    .schema("connect")
+    .from("people")
+    .select("household")
+    .eq("id", personId)
+    .single();
+  if (pError || !person) return { error: "Person not found." };
+  if (person.household) return { household_id: person.household as string };
+
+  const { data: household, error: hError } = await supabase
+    .schema("connect")
+    .from("households")
+    .insert({})
+    .select("id")
+    .single();
+  if (hError || !household) return { error: hError?.message ?? "Failed to create household." };
+
+  const { error: uError } = await supabase
+    .schema("connect")
+    .from("people")
+    .update({
+      household: household.id,
+      household_membership_type: "Head of Household",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", personId);
+  if (uError) {
+    await supabase.schema("connect").from("households").delete().eq("id", household.id);
+    return { error: uError.message };
+  }
+  return { household_id: household.id };
+}
+
+/** Get pending invitations for the given person (invitee). */
+export async function getPendingInvitationsForPerson(personId: string): Promise<HouseholdInvitation[]> {
+  const { data: rows, error } = await supabase
+    .schema("connect")
+    .from("household_invitations")
+    .select("id, household_id, inviter_person_id, invitee_person_id, membership_type, created_at")
+    .eq("invitee_person_id", personId);
+  if (error || !rows?.length) return [];
+
+  const inviterIds = [...new Set((rows as Record<string, unknown>[]).map((r) => r.inviter_person_id as string))];
+  const { data: peopleRows } = await supabase
+    .schema("connect")
+    .from("people")
+    .select("id, first_name, last_name, preferred_name")
+    .in("id", inviterIds);
+  const inviterMap = new Map(
+    (peopleRows ?? []).map((p: Record<string, unknown>) => [
+      p.id,
+      {
+        first_name: (p.first_name as string) ?? "",
+        last_name: (p.last_name as string) ?? "",
+        preferred_name: (p.preferred_name as string) ?? "",
+      },
+    ])
+  );
+
+  return rows.map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    household_id: row.household_id as string,
+    inviter_person_id: row.inviter_person_id as string,
+    invitee_person_id: row.invitee_person_id as string,
+    membership_type: row.membership_type as HouseholdMembershipType,
+    created_at: row.created_at as string,
+    inviter: inviterMap.get(row.inviter_person_id as string),
+  }));
+}
+
+/** Count of pending invitations for a person (for header badge). */
+export async function getPendingInviteCount(personId: string): Promise<number> {
+  const { count, error } = await supabase
+    .schema("connect")
+    .from("household_invitations")
+    .select("id", { count: "exact", head: true })
+    .eq("invitee_person_id", personId);
+  if (error) return 0;
+  return count ?? 0;
+}
+
+/** Invite a user (by email) to the household. Only Heads should call. Creates invitation. */
+export async function inviteToHousehold(
   householdId: string,
-  personId: string,
-  role: HouseholdMemberRole,
-  relationship: HouseholdRelationship | null
-): Promise<{ error?: string }> {
-  const { error } = await supabase.schema("connect").from("household_members").insert({
+  inviterPersonId: string,
+  email: string,
+  membershipType: HouseholdMembershipType
+): Promise<{ success: true } | { error: string }> {
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed) return { error: "Email is required." };
+
+  const person = await findPersonByEmail(trimmed);
+  if (!person) return { error: "No account found with that email." };
+  const hasAccount = await personHasAccount(person.id);
+  if (!hasAccount) return { error: "No account found with that email." };
+
+  const { error } = await supabase.schema("connect").from("household_invitations").insert({
     household_id: householdId,
-    person_id: personId,
-    role,
-    relationship,
+    inviter_person_id: inviterPersonId,
+    invitee_person_id: person.id,
+    membership_type: membershipType,
   });
+  if (error) {
+    if (error.code === "23505") return { error: "This person has already been invited to this household." };
+    return { error: error.message };
+  }
+  return { success: true };
+}
+
+/** Accept one invitation; decline (delete) all others for this user. */
+export async function acceptInvitation(
+  invitationId: string,
+  inviteePersonId: string
+): Promise<{ success: true } | { error: string }> {
+  const { data: inv, error: fetchError } = await supabase
+    .schema("connect")
+    .from("household_invitations")
+    .select("household_id, membership_type")
+    .eq("id", invitationId)
+    .eq("invitee_person_id", inviteePersonId)
+    .single();
+  if (fetchError || !inv) return { error: "Invitation not found." };
+
+  const oldHouseholdId = await getPersonHouseholdId(inviteePersonId);
+
+  const { error: updateError } = await supabase
+    .schema("connect")
+    .from("people")
+    .update({
+      household: inv.household_id,
+      household_membership_type: inv.membership_type,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", inviteePersonId);
+  if (updateError) return { error: updateError.message };
+
+  await supabase.schema("connect").from("household_invitations").delete().eq("invitee_person_id", inviteePersonId);
+
+  if (oldHouseholdId) {
+    const { count } = await supabase
+      .schema("connect")
+      .from("people")
+      .select("id", { count: "exact", head: true })
+      .eq("household", oldHouseholdId);
+    if (count === 0) {
+      await supabase.schema("connect").from("households").delete().eq("id", oldHouseholdId);
+    }
+  }
+  return { success: true };
+}
+
+/** Decline one invitation (delete it). */
+export async function declineInvitation(
+  invitationId: string,
+  inviteePersonId: string
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .schema("connect")
+    .from("household_invitations")
+    .delete()
+    .eq("id", invitationId)
+    .eq("invitee_person_id", inviteePersonId);
   return { error: error?.message };
 }
 
-/** Create a new person (no account) and add to household. */
+async function getPersonHouseholdId(personId: string): Promise<string | null> {
+  const { data } = await supabase
+    .schema("connect")
+    .from("people")
+    .select("household")
+    .eq("id", personId)
+    .single();
+  return (data?.household as string) ?? null;
+}
+
+/** Add a non-user to the household (create people row, set household + membership_type). */
 export async function addPersonWithoutAccount(
   householdId: string,
-  role: HouseholdMemberRole,
-  relationship: HouseholdRelationship | null,
-  person: { first_name: string; last_name: string; email?: string | null }
+  membershipType: "Child" | "Other",
+  person: {
+    first_name: string;
+    last_name: string;
+    email?: string | null;
+    preferred_name?: string;
+    date_of_birth?: string;
+    phone_number?: string;
+    gender?: string;
+    marital_status?: string;
+  }
 ): Promise<{ person_id: string } | { error: string }> {
   const { data: newPerson, error: personError } = await supabase
     .schema("connect")
@@ -225,30 +358,85 @@ export async function addPersonWithoutAccount(
       first_name: person.first_name,
       last_name: person.last_name,
       email: person.email ?? null,
-      preferred_name: person.first_name,
-      phone_number: "",
-      date_of_birth: "1900-01-01",
-      gender: "male",
-      marital_status: "single",
+      preferred_name: person.preferred_name ?? person.first_name,
+      phone_number: person.phone_number ?? "",
+      date_of_birth: person.date_of_birth ?? "1900-01-01",
+      gender: person.gender ?? "male",
+      marital_status: person.marital_status ?? "single",
+      household: householdId,
+      household_membership_type: membershipType,
     })
     .select("id")
     .single();
-  if (personError || !newPerson) return { error: personError?.message ?? "Failed to create person" };
-
-  const { error: memberError } = await supabase.schema("connect").from("household_members").insert({
-    household_id: householdId,
-    person_id: newPerson.id,
-    role,
-    relationship,
-  });
-  if (memberError) {
-    await supabase.schema("connect").from("people").delete().eq("id", newPerson.id);
-    return { error: memberError.message };
-  }
+  if (personError || !newPerson) return { error: personError?.message ?? "Failed to create person." };
   return { person_id: newPerson.id };
 }
 
-/** Find person by email (in people table). Returns null if not found. */
+/** Update a household member's membership type. Caller must be a Head. */
+export async function updateHouseholdMemberMembershipType(
+  personId: string,
+  membershipType: HouseholdMembershipType
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .schema("connect")
+    .from("people")
+    .update({
+      household_membership_type: membershipType,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", personId);
+  return { error: error?.message };
+}
+
+/** Remove a person from the household. If user (has account), create new household and set as Head. If non-user, set household null. If last member, delete household. */
+export async function removeMemberFromHousehold(
+  householdId: string,
+  personId: string,
+  isUser: boolean
+): Promise<{ error?: string }> {
+  if (isUser) {
+    const { data: newHousehold, error: createErr } = await supabase
+      .schema("connect")
+      .from("households")
+      .insert({})
+      .select("id")
+      .single();
+    if (createErr || !newHousehold) return { error: createErr?.message ?? "Failed to create household." };
+    const { error: updateErr } = await supabase
+      .schema("connect")
+      .from("people")
+      .update({
+        household: newHousehold.id,
+        household_membership_type: "Head of Household",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", personId);
+    if (updateErr) return { error: updateErr.message };
+  } else {
+    const { error: updateErr } = await supabase
+      .schema("connect")
+      .from("people")
+      .update({
+        household: null,
+        household_membership_type: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", personId);
+    if (updateErr) return { error: updateErr.message };
+  }
+
+  const { count } = await supabase
+    .schema("connect")
+    .from("people")
+    .select("id", { count: "exact", head: true })
+    .eq("household", householdId);
+  if (count === 0) {
+    await supabase.schema("connect").from("households").delete().eq("id", householdId);
+  }
+  return {};
+}
+
+/** Find person by email. Returns null if not found. */
 export async function findPersonByEmail(email: string): Promise<{ id: string } | null> {
   const { data } = await supabase
     .schema("connect")
@@ -260,125 +448,22 @@ export async function findPersonByEmail(email: string): Promise<{ id: string } |
   return data ? { id: (data as { id: string }).id } : null;
 }
 
-/** Check if a person has an account (exists in profiles). */
+/** Check if a person has an account (exists in profiles). Uses RPC to avoid RLS blocking read of other users' profiles. */
 export async function personHasAccount(personId: string): Promise<boolean> {
-  const { data } = await supabase
-    .schema("connect")
-    .from("profiles")
-    .select("id")
-    .eq("person_id", personId)
-    .limit(1)
-    .single();
-  return !!data;
+  const { data, error } = await supabase.schema("connect").rpc("person_has_account", {
+    check_person_id: personId,
+  });
+  if (error) return false;
+  return data === true;
 }
 
-/** Add member by email. If they have an account, adds to household. If not, creates person, adds to household, and invites via Edge Function. */
-export async function addMemberByEmail(
-  householdId: string,
-  email: string,
-  role: HouseholdMemberRole,
-  relationship: HouseholdRelationship | null,
-  options: { first_name?: string; last_name?: string }
-): Promise<{ success: true } | { error: string }> {
-  const trimmed = email.trim().toLowerCase();
-  if (!trimmed) return { error: "Email is required." };
-
-  const person = await findPersonByEmail(trimmed);
-  const hasAccount = person ? await personHasAccount(person.id) : false;
-
-  if (person && hasAccount) {
-    const err = await addMemberToHousehold(householdId, person.id, role, relationship);
-    return err.error ? { error: err.error } : { success: true };
-  }
-
-  if (person && !hasAccount) {
-    const err = await addMemberToHousehold(householdId, person.id, role, relationship);
-    if (err.error) return { error: err.error };
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (!token) return { error: "Not authenticated." };
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") + "/functions/v1/invite-household-member";
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ household_id: householdId, email: trimmed }),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) return { error: (json as { error?: string }).error ?? "Failed to send invite." };
-    return { success: true };
-  }
-
-  if (!person) {
-    const { data: newPerson, error: personError } = await supabase
-      .schema("connect")
-      .from("people")
-      .insert({
-        first_name: options.first_name ?? "",
-        last_name: options.last_name ?? "",
-        email: trimmed,
-        preferred_name: options.first_name ?? "",
-        phone_number: "",
-        date_of_birth: "1900-01-01",
-        gender: "male",
-        marital_status: "single",
-      })
-      .select("id")
-      .single();
-    if (personError || !newPerson) return { error: personError?.message ?? "Failed to create person." };
-    const err = await addMemberToHousehold(householdId, newPerson.id, role, relationship);
-    if (err.error) {
-      await supabase.schema("connect").from("people").delete().eq("id", newPerson.id);
-      return { error: err.error };
-    }
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (!token) return { error: "Not authenticated." };
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") + "/functions/v1/invite-household-member";
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ household_id: householdId, email: trimmed }),
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok) return { error: (json as { error?: string }).error ?? "Failed to send invite." };
-    return { success: true };
-  }
-
-  return { error: "Unable to add member." };
-}
-
-/** Update a member's role or relationship. */
-export async function updateHouseholdMember(
-  memberId: string,
-  updates: { role?: HouseholdMemberRole; relationship?: HouseholdRelationship | null }
-): Promise<{ error?: string }> {
-  const { error } = await supabase
+/** Locations that are physical campuses (for home campus dropdown). */
+export async function getCampusLocations(): Promise<CampusLocation[]> {
+  const { data, error } = await supabase
     .schema("connect")
-    .from("household_members")
-    .update(updates)
-    .eq("id", memberId);
-  return { error: error?.message };
-}
-
-/** Remove a member from the household. If they were the last member, delete the household. */
-export async function removeMemberFromHousehold(
-  householdId: string,
-  memberId: string
-): Promise<{ error?: string }> {
-  const { error: delError } = await supabase
-    .schema("connect")
-    .from("household_members")
-    .delete()
-    .eq("id", memberId);
-  if (delError) return { error: delError.message };
-
-  const { data: remaining } = await supabase
-    .schema("connect")
-    .from("household_members")
-    .select("id")
-    .eq("household_id", householdId);
-  if (remaining && remaining.length === 0) {
-    await supabase.schema("connect").from("households").delete().eq("id", householdId);
-  }
-  return {};
+    .from("locations")
+    .select("location, address, city, state, zip, type")
+    .in("type", ["physical_campus", "physical_property"]);
+  if (error) return [];
+  return (data ?? []) as CampusLocation[];
 }

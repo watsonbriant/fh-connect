@@ -13,6 +13,7 @@ type Props = {
   avatarUrl: string | null;
   profileInitials: string | null;
   hasUser: boolean;
+  hasPendingInvites?: boolean;
   onCloseAccountMenu: () => void;
   onLogout: () => void;
   onOpenAuthModal: () => void;
@@ -27,6 +28,7 @@ export default function HeaderDesktopNav({
   avatarUrl,
   profileInitials,
   hasUser,
+  hasPendingInvites = false,
   onCloseAccountMenu,
   onLogout,
   onOpenAuthModal,
@@ -104,6 +106,7 @@ export default function HeaderDesktopNav({
           avatarUrl={avatarUrl}
           profileInitials={profileInitials}
           hasUser={!!hasUser}
+          hasPendingInvites={hasPendingInvites}
           accountMenuOpen={accountMenuOpen}
           onToggle={onAccountMenuToggle}
           className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded text-brand-white hover:text-brand-tan"

@@ -3,20 +3,27 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   getMyHousehold,
-  getCampusLocations,
-  updateHousehold,
-  addMemberByEmail,
+  getPendingInvitationsForPerson,
+  ensureHouseholdForPerson,
+  acceptInvitation,
+  declineInvitation,
+  inviteToHousehold,
   addPersonWithoutAccount,
-  updateHouseholdMember,
+  updateHousehold,
+  updateHouseholdMemberMembershipType,
   removeMemberFromHousehold,
+  personHasAccount,
   type HouseholdWithMembers,
   type HouseholdMember,
-  type HouseholdMemberRole,
-  type HouseholdRelationship,
-  type CampusLocation,
+  type HouseholdMembershipType,
+  type HouseholdInvitation,
 } from "@/lib/households";
-import HouseholdEditAddressModal from "@/components/HouseholdEditAddressModal";
-import HouseholdAddMemberModal from "@/components/HouseholdAddMemberModal";
+import HouseholdAddMemberModal, {
+  type AddNoAccountForm as AddNoAccountFormType,
+} from "@/components/HouseholdAddMemberModal";
+import HouseholdEditAddressModal, {
+  type HouseholdAddressFormState,
+} from "@/components/HouseholdEditAddressModal";
 import HouseholdMemberRow from "@/components/HouseholdMemberRow";
 
 type HouseholdSectionProps = {
@@ -26,17 +33,29 @@ type HouseholdSectionProps = {
 
 export default function HouseholdSection({ personId, onMessage }: HouseholdSectionProps) {
   const [household, setHousehold] = useState<HouseholdWithMembers | null | "loading">("loading");
-  const [campuses, setCampuses] = useState<CampusLocation[]>([]);
+  const [invitations, setInvitations] = useState<HouseholdInvitation[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalMode, setAddModalMode] = useState<"email" | "no_account">("email");
-  const [showEditAddress, setShowEditAddress] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setHousehold("loading");
-    const [h, c] = await Promise.all([getMyHousehold(personId), getCampusLocations()]);
-    setHousehold(h);
-    setCampuses(c);
+    const [h, inv] = await Promise.all([
+      getMyHousehold(personId),
+      getPendingInvitationsForPerson(personId),
+    ]);
+    if (!h && personId) {
+      const ensured = await ensureHouseholdForPerson(personId);
+      if ("household_id" in ensured) {
+        const updated = await getMyHousehold(personId);
+        setHousehold(updated);
+      } else {
+        setHousehold(null);
+      }
+    } else {
+      setHousehold(h);
+    }
+    setInvitations(inv ?? []);
   }, [personId]);
 
   useEffect(() => {
@@ -45,43 +64,40 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
 
   const [addByEmailForm, setAddByEmailForm] = useState({
     email: "",
-    role: "member" as HouseholdMemberRole,
-    relationship: "" as HouseholdRelationship | "",
+    membership_type: "Other" as HouseholdMembershipType,
+  });
+  const [addNoAccountForm, setAddNoAccountForm] = useState<AddNoAccountFormType>({
     first_name: "",
     last_name: "",
+    membership_type: "Child",
   });
-  const [addNoAccountForm, setAddNoAccountForm] = useState({
-    first_name: "",
-    last_name: "",
-    relationship: "parent_of" as HouseholdRelationship,
-  });
-  const [editAddressForm, setEditAddressForm] = useState({
+  const [showEditAddress, setShowEditAddress] = useState(false);
+  const [editAddressForm, setEditAddressForm] = useState<HouseholdAddressFormState>({
     street_address: "",
     city: "",
     state: "",
-    zip_code: "",
-    home_campus: "",
+    zip: "",
   });
 
-  const handleAddByEmail = async (e: React.FormEvent) => {
+  const handleInviteByEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!household || household === "loading") return;
     setSaving(true);
-    const result = await addMemberByEmail(
+    const result = await inviteToHousehold(
       household.id,
+      personId,
       addByEmailForm.email,
-      addByEmailForm.role,
-      addByEmailForm.relationship || null,
-      { first_name: addByEmailForm.first_name, last_name: addByEmailForm.last_name }
+      addByEmailForm.membership_type
     );
     setSaving(false);
     if ("error" in result) {
       onMessage("error", result.error);
       return;
     }
-    onMessage("success", "Member added. If they don't have an account, an invite was sent.");
+    onMessage("success", "Invitation sent.");
     setShowAddModal(false);
-    setAddByEmailForm({ email: "", role: "member", relationship: "", first_name: "", last_name: "" });
+    setAddByEmailForm({ email: "", membership_type: "Other" });
+    setAddModalMode("email");
     load();
   };
 
@@ -91,11 +107,13 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
     setSaving(true);
     const result = await addPersonWithoutAccount(
       household.id,
-      "member",
-      addNoAccountForm.relationship,
+      addNoAccountForm.membership_type,
       {
         first_name: addNoAccountForm.first_name,
         last_name: addNoAccountForm.last_name,
+        email: addNoAccountForm.email,
+        date_of_birth: addNoAccountForm.date_of_birth,
+        phone_number: addNoAccountForm.phone_number,
       }
     );
     setSaving(false);
@@ -105,7 +123,64 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
     }
     onMessage("success", "Household member added.");
     setShowAddModal(false);
-    setAddNoAccountForm({ first_name: "", last_name: "", relationship: "parent_of" });
+    setAddNoAccountForm({
+      first_name: "",
+      last_name: "",
+      membership_type: "Child",
+    });
+    setAddModalMode("no_account");
+    load();
+  };
+
+  const handleAcceptInvitation = async (invitationId: string) => {
+    setSaving(true);
+    const result = await acceptInvitation(invitationId, personId);
+    setSaving(false);
+    if ("error" in result) {
+      onMessage("error", result.error);
+      return;
+    }
+    onMessage("success", "You joined the household.");
+    load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("household-invitations-changed"));
+    }
+  };
+
+  const handleDeclineInvitation = async (invitationId: string) => {
+    await declineInvitation(invitationId, personId);
+    load();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("household-invitations-changed"));
+    }
+  };
+
+  const handleMembershipTypeChange = async (
+    member: HouseholdMember,
+    newType: HouseholdMembershipType
+  ) => {
+    if (!household || household === "loading") return;
+    const isChangingSelf = member.person_id === personId;
+    const isHead = household.members.some(
+      (m: HouseholdMember) =>
+        m.person_id === personId && m.household_membership_type === "Head of Household"
+    );
+    const targetIsHead = member.household_membership_type === "Head of Household";
+    if (
+      (isChangingSelf || targetIsHead) &&
+      (newType === "Child" || newType === "Other")
+    ) {
+      const message = isChangingSelf
+        ? "If you change your own membership type from Head of Household, you may lose the ability to manage the household. Continue?"
+        : "Changing this member from Head of Household may remove their management permissions. Continue?";
+      if (!confirm(message)) return;
+    }
+    const { error } = await updateHouseholdMemberMembershipType(member.person_id, newType);
+    if (error) {
+      onMessage("error", error);
+      return;
+    }
+    onMessage("success", "Membership type updated.");
     load();
   };
 
@@ -114,11 +189,10 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
     if (!household || household === "loading") return;
     setSaving(true);
     const { error } = await updateHousehold(household.id, {
-      street_address: editAddressForm.street_address,
-      city: editAddressForm.city,
-      state: editAddressForm.state,
-      zip_code: editAddressForm.zip_code,
-      home_campus: editAddressForm.home_campus || null,
+      street_address: editAddressForm.street_address || null,
+      city: editAddressForm.city || null,
+      state: editAddressForm.state || null,
+      zip: editAddressForm.zip || null,
     });
     setSaving(false);
     if (error) {
@@ -130,16 +204,6 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
     load();
   };
 
-  const handleRoleChange = async (member: HouseholdMember, newRole: HouseholdMemberRole) => {
-    const { error } = await updateHouseholdMember(member.id, { role: newRole });
-    if (error) {
-      onMessage("error", error);
-      return;
-    }
-    onMessage("success", "Role updated.");
-    load();
-  };
-
   const handleRemove = async (member: HouseholdMember) => {
     if (!household || household === "loading") return;
     const name =
@@ -147,7 +211,8 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
       (member.person as { first_name?: string })?.first_name ||
       "this member";
     if (!confirm(`Remove ${name} from the household?`)) return;
-    const { error } = await removeMemberFromHousehold(household.id, member.id);
+    const hasAccount = await personHasAccount(member.person_id);
+    const { error } = await removeMemberFromHousehold(household.id, member.person_id, hasAccount);
     if (error) {
       onMessage("error", error);
       return;
@@ -176,38 +241,22 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
     );
   }
 
-  const isHead = household.members.some((m) => m.person_id === personId && m.role === "head");
-  const householdHeaderName = household.display_name.split("|")[0]?.trim() || "Household";
-  const cityStateZip = [household.city, household.state, household.zip_code].filter(Boolean).join(", ");
+  const isHead = household.members.some(
+    (m) => m.person_id === personId && m.household_membership_type === "Head of Household"
+  );
 
-  const handleHomeCampusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value || null;
-    const { error } = await updateHousehold(household.id, { home_campus: value });
-    if (error) onMessage("error", error);
-    else {
-      onMessage("success", "Home campus updated.");
-      load();
-    }
-  };
-
-  const campusOptions = [...campuses];
-  const currentCampus = household.home_campus ?? "";
-  if (currentCampus && !campusOptions.some((c) => c.location === currentCampus)) {
-    campusOptions.push({
-      location: currentCampus,
-      address: null,
-      city: null,
-      state: null,
-      zip: null,
-      type: "",
-    });
-  }
+  const hasAddress =
+    (household.street_address ?? "").trim() ||
+    (household.city ?? "").trim() ||
+    (household.state ?? "").trim() ||
+    (household.zip ?? "").trim();
+  const cityStateZip = [household.city, household.state, household.zip]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div>
-      <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
-        {householdHeaderName} Household
-      </h2>
+      <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">Household</h2>
 
       <p className="mb-1 text-xs font-bold uppercase tracking-tight text-brand-black/60">
         Home address
@@ -224,17 +273,19 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
           ) : household.street_address ? (
             <p className="text-sm tracking-tight text-brand-black/70">&nbsp;</p>
           ) : null}
+          {!hasAddress && (
+            <p className="text-sm tracking-tight text-brand-black/60">No address entered</p>
+          )}
         </div>
-        {isHead && !showEditAddress && (
+        {isHead && (
           <button
             type="button"
             onClick={() => {
               setEditAddressForm({
-                street_address: household.street_address,
-                city: household.city,
-                state: household.state,
-                zip_code: household.zip_code,
-                home_campus: household.home_campus ?? "",
+                street_address: household.street_address ?? "",
+                city: household.city ?? "",
+                state: household.state ?? "",
+                zip: household.zip ?? "",
               });
               setShowEditAddress(true);
             }}
@@ -247,24 +298,71 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
 
       <hr className="my-3 border-0 border-t border-brand-black/10" />
 
-      <p className="mb-1 text-xs font-bold uppercase tracking-tight text-brand-black/60">
-        Home Campus
-      </p>
-      <select
-        value={currentCampus}
-        onChange={handleHomeCampusChange}
-        disabled={!isHead}
-        className="mb-1 w-full max-w-xs rounded border border-brand-black/20 px-3 py-1 text-sm tracking-tight text-brand-black disabled:cursor-not-allowed disabled:opacity-70"
-      >
-        <option value="">Select campus</option>
-        {campusOptions.map((c) => (
-          <option key={c.location} value={c.location}>
-            {c.location}
-          </option>
-        ))}
-      </select>
+      {invitations.length > 0 && (
+        <div className="mb-4 space-y-2">
+          <p className="mb-1 text-xs font-bold uppercase tracking-tight text-brand-black/60">
+            Pending invitations
+          </p>
+          {invitations.map((inv) => {
+            const inviterName =
+              inv.inviter?.preferred_name ||
+              [inv.inviter?.first_name, inv.inviter?.last_name].filter(Boolean).join(" ") ||
+              "Someone";
+            return (
+              <div
+                key={inv.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded border border-brand-tan/50 bg-brand-tan/10 px-3 py-2 transition-all duration-200"
+              >
+                <p className="text-sm tracking-tight text-brand-black">
+                  <strong>{inviterName}</strong> has invited you to their household.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAcceptInvitation(inv.id)}
+                    disabled={saving}
+                    className="rounded bg-brand-black px-3 py-1.5 text-sm font-semibold tracking-tight text-brand-white transition-colors duration-150 hover:bg-brand-black/90 disabled:opacity-50"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleDeclineInvitation(inv.id)}
+                    disabled={saving}
+                    className="rounded border border-brand-black/30 px-3 py-1.5 text-sm font-medium tracking-tight text-brand-black hover:bg-brand-black/5 disabled:opacity-50"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      <hr className="my-3 border-0 border-t border-brand-black/10" />
+      <div className="mb-2 mt-4 flex items-center justify-between gap-3">
+        <h3 className="text-base font-bold tracking-tight text-brand-black">Household members</h3>
+        {isHead && !showAddModal && (
+          <button
+            type="button"
+            onClick={() => setShowAddModal(true)}
+            className="shrink-0 rounded bg-brand-black px-3 py-1 text-sm font-semibold tracking-tight text-brand-white transition-colors duration-150 hover:bg-brand-black/90 hover:text-brand-tan"
+          >
+            Add member
+          </button>
+        )}
+      </div>
+      <ul className="space-y-2">
+        {household.members.map((m) => (
+          <HouseholdMemberRow
+            key={m.person_id}
+            member={m}
+            isHead={isHead}
+            onMembershipTypeChange={handleMembershipTypeChange}
+            onRemove={handleRemove}
+          />
+        ))}
+      </ul>
 
       <HouseholdEditAddressModal
         open={showEditAddress}
@@ -283,35 +381,13 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
         addByEmailForm={addByEmailForm}
         onAddByEmailFormChange={setAddByEmailForm}
         addNoAccountForm={addNoAccountForm}
-        onAddNoAccountFormChange={setAddNoAccountForm}
-        onAddByEmail={handleAddByEmail}
+        onAddNoAccountFormChange={(updater) =>
+          setAddNoAccountForm((prev) => updater(prev))
+        }
+        onAddByEmail={handleInviteByEmail}
         onAddNoAccount={handleAddNoAccount}
         saving={saving}
       />
-
-      <div className="mb-2 mt-4 flex items-center justify-between gap-3">
-        <h3 className="text-base font-bold tracking-tight text-brand-black">Household members</h3>
-        {isHead && !showAddModal && (
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="shrink-0 rounded bg-brand-black px-3 py-1 text-sm font-semibold tracking-tight text-brand-white transition-colors duration-150 hover:bg-brand-black/90 hover:text-brand-tan"
-          >
-            Add member
-          </button>
-        )}
-      </div>
-      <ul className="space-y-2">
-        {household.members.map((m) => (
-          <HouseholdMemberRow
-            key={m.id}
-            member={m}
-            isHead={isHead}
-            onRoleChange={handleRoleChange}
-            onRemove={handleRemove}
-          />
-        ))}
-      </ul>
     </div>
   );
 }

@@ -1,23 +1,23 @@
 "use client";
 
-import { RELATIONSHIP_LABELS } from "@/constants/household";
-import type {
-  HouseholdMemberRole,
-  HouseholdRelationship,
-} from "@/lib/households";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { MEMBERSHIP_TYPE_LABELS } from "@/constants/household";
+import type { HouseholdMembershipType } from "@/lib/households";
+
+const ANIMATION_DURATION_MS = 200;
 
 type AddByEmailForm = {
   email: string;
-  role: HouseholdMemberRole;
-  relationship: HouseholdRelationship | "";
-  first_name: string;
-  last_name: string;
+  membership_type: HouseholdMembershipType;
 };
 
-type AddNoAccountForm = {
+export type AddNoAccountForm = {
   first_name: string;
   last_name: string;
-  relationship: HouseholdRelationship;
+  membership_type: "Child" | "Other";
+  date_of_birth?: string;
+  email?: string;
+  phone_number?: string;
 };
 
 type Props = {
@@ -47,14 +47,45 @@ export default function HouseholdAddMemberModal({
   onAddNoAccount,
   saving,
 }: Props) {
-  if (!open) return null;
+  const [isClosing, setIsClosing] = useState(false);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    closeTimeoutRef.current = setTimeout(() => {
+      closeTimeoutRef.current = null;
+      onClose();
+      setIsClosing(false);
+    }, ANIMATION_DURATION_MS);
+  }, [onClose, isClosing]);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
+  if (!open && !isClosing) return null;
+
+  const isExiting = isClosing;
+  const overlayOpacity = isExiting ? "opacity-0" : "opacity-100";
+  const contentOpacity = isExiting ? "opacity-0 scale-95" : "opacity-100 scale-100";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-brand-black/50 px-4 transition-opacity duration-200">
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center px-4 transition-opacity duration-200 ease-out ${isClosing ? "pointer-events-none" : ""}`}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-member-title"
+    >
       <div
-        className="w-full max-w-md overflow-hidden rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black transition-all duration-200"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="add-member-title"
+        className={`absolute inset-0 bg-brand-black/50 transition-opacity duration-200 ease-out ${overlayOpacity}`}
+        onClick={handleClose}
+        aria-hidden
+      />
+      <div
+        className={`relative w-full max-w-md overflow-hidden rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black transition-all duration-200 ease-out ${contentOpacity}`}
       >
         <div className="border-b border-brand-black/10 px-5 py-4">
           <h3 id="add-member-title" className="text-xl font-bold tracking-tight text-brand-black">
@@ -70,7 +101,7 @@ export default function HouseholdAddMemberModal({
                   : "border border-brand-black/30 text-brand-black hover:bg-brand-black/5"
               }`}
             >
-              By email
+              Invite by email
             </button>
             <button
               type="button"
@@ -81,7 +112,7 @@ export default function HouseholdAddMemberModal({
                   : "border border-brand-black/30 text-brand-black hover:bg-brand-black/5"
               }`}
             >
-              Without account
+              Add without account
             </button>
           </div>
         </div>
@@ -100,50 +131,23 @@ export default function HouseholdAddMemberModal({
                   required
                 />
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  placeholder="First name (optional)"
-                  value={addByEmailForm.first_name}
-                  onChange={(e) => onAddByEmailFormChange((f) => ({ ...f, first_name: e.target.value }))}
-                  className="rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
-                />
-                <input
-                  type="text"
-                  placeholder="Last name (optional)"
-                  value={addByEmailForm.last_name}
-                  onChange={(e) => onAddByEmailFormChange((f) => ({ ...f, last_name: e.target.value }))}
-                  className="rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
-                />
-              </div>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Role
+                  Membership type
                 </span>
                 <select
-                  value={addByEmailForm.role}
-                  onChange={(e) => onAddByEmailFormChange((f) => ({ ...f, role: e.target.value as HouseholdMemberRole }))}
-                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm tracking-tight text-brand-black"
-                >
-                  <option value="member">Member</option>
-                  <option value="head">Head</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Relationship
-                </span>
-                <select
-                  value={addByEmailForm.relationship}
+                  value={addByEmailForm.membership_type}
                   onChange={(e) =>
-                    onAddByEmailFormChange((f) => ({ ...f, relationship: e.target.value as HouseholdRelationship | "" }))
+                    onAddByEmailFormChange((f) => ({
+                      ...f,
+                      membership_type: e.target.value as HouseholdMembershipType,
+                    }))
                   }
                   className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm tracking-tight text-brand-black"
                 >
-                  <option value="">—</option>
-                  {(Object.keys(RELATIONSHIP_LABELS) as HouseholdRelationship[]).map((r) => (
-                    <option key={r} value={r}>
-                      {RELATIONSHIP_LABELS[r]}
+                  {(Object.keys(MEMBERSHIP_TYPE_LABELS) as HouseholdMembershipType[]).map((t) => (
+                    <option key={t} value={t}>
+                      {MEMBERSHIP_TYPE_LABELS[t]}
                     </option>
                   ))}
                 </select>
@@ -154,11 +158,11 @@ export default function HouseholdAddMemberModal({
                   disabled={saving}
                   className="rounded bg-brand-black px-4 py-2 text-sm font-semibold tracking-tight text-brand-white transition-colors duration-150 hover:bg-brand-black/90 hover:text-brand-tan disabled:opacity-50"
                 >
-                  {saving ? "Adding…" : "Add"}
+                  {saving ? "Sending…" : "Send invite"}
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="rounded border border-brand-black/30 px-4 py-2 text-sm font-medium tracking-tight text-brand-black hover:bg-brand-black/5"
                 >
                   Cancel
@@ -177,7 +181,6 @@ export default function HouseholdAddMemberModal({
                   onChange={(e) => onAddNoAccountFormChange((f) => ({ ...f, first_name: e.target.value }))}
                   className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
                   required
-                  placeholder=""
                 />
               </label>
               <label className="block">
@@ -190,26 +193,65 @@ export default function HouseholdAddMemberModal({
                   onChange={(e) => onAddNoAccountFormChange((f) => ({ ...f, last_name: e.target.value }))}
                   className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
                   required
-                  placeholder=""
                 />
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Relationship
+                  Membership type
                 </span>
                 <select
-                  value={addNoAccountForm.relationship}
+                  value={addNoAccountForm.membership_type}
                   onChange={(e) =>
-                    onAddNoAccountFormChange((f) => ({ ...f, relationship: e.target.value as HouseholdRelationship }))
+                    onAddNoAccountFormChange((f) => ({
+                      ...f,
+                      membership_type: e.target.value as "Child" | "Other",
+                    }))
                   }
                   className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm tracking-tight text-brand-black"
                 >
-                  {(Object.keys(RELATIONSHIP_LABELS) as HouseholdRelationship[]).map((r) => (
-                    <option key={r} value={r}>
-                      {RELATIONSHIP_LABELS[r]}
-                    </option>
-                  ))}
+                  <option value="Child">{MEMBERSHIP_TYPE_LABELS.Child}</option>
+                  <option value="Other">{MEMBERSHIP_TYPE_LABELS.Other}</option>
                 </select>
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
+                  Date of birth
+                </span>
+                <input
+                  type="date"
+                  value={addNoAccountForm.date_of_birth ?? ""}
+                  onChange={(e) =>
+                    onAddNoAccountFormChange((f) => ({ ...f, date_of_birth: e.target.value || undefined }))
+                  }
+                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
+                  Email (optional)
+                </span>
+                <input
+                  type="email"
+                  value={addNoAccountForm.email ?? ""}
+                  onChange={(e) =>
+                    onAddNoAccountFormChange((f) => ({ ...f, email: e.target.value || undefined }))
+                  }
+                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
+                  Phone (optional)
+                </span>
+                <input
+                  type="tel"
+                  value={addNoAccountForm.phone_number ?? ""}
+                  onChange={(e) =>
+                    onAddNoAccountFormChange((f) => ({ ...f, phone_number: e.target.value || undefined }))
+                  }
+                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
+                />
               </label>
               <div className="mt-2 flex gap-2">
                 <button
@@ -221,7 +263,7 @@ export default function HouseholdAddMemberModal({
                 </button>
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="rounded border border-brand-black/30 px-4 py-2 text-sm font-medium tracking-tight text-brand-black hover:bg-brand-black/5"
                 >
                   Cancel

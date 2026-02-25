@@ -1,7 +1,7 @@
-import type { HouseholdRelationship } from "@/lib/households";
+import type { HouseholdMembershipType } from "@/lib/households";
 
-export const RELATIONSHIP_LABELS: Record<HouseholdRelationship, string> = {
-  married_to: "Married to",
-  in_a_relationship_with: "In a relationship with",
-  parent_of: "Parent of",
+export const MEMBERSHIP_TYPE_LABELS: Record<HouseholdMembershipType, string> = {
+  "Head of Household": "Head of Household",
+  Child: "Child",
+  Other: "Other",
 };
