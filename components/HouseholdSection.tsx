@@ -159,7 +159,7 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
   if (household === "loading") {
     return (
       <div>
-        <h3 className="mb-2 text-lg font-semibold tracking-tight text-brand-black">Household</h3>
+        <h3 className="mb-2 text-xl font-bold tracking-tight text-brand-black">Household</h3>
         <p className="tracking-tight text-brand-black/70">Loading…</p>
       </div>
     );
@@ -168,7 +168,7 @@ export default function HouseholdSection({ personId, onMessage }: HouseholdSecti
   if (!household) {
     return (
       <div>
-        <h3 className="mb-2 text-lg font-semibold tracking-tight text-brand-black">Household</h3>
+        <h3 className="mb-2 text-xl font-bold tracking-tight text-brand-black">Household</h3>
         <p className="tracking-tight text-brand-black/70">
           We couldn&apos;t find a household for your account yet.
         </p>

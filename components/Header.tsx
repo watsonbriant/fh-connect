@@ -13,7 +13,7 @@ import HeaderMobileNav from "@/components/HeaderMobileNav";
 export default function Header() {
   const pathname = usePathname();
   const router = useRouter();
-  const { showLogoutToast } = useLogoutToast();
+  const { showLogoutToast, clearEmailConfirmedFlag } = useLogoutToast();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -75,12 +75,13 @@ export default function Header() {
     const wasOnFhconnect = pathname?.startsWith("/fhconnect");
     setUser(null);
     setProfile(null);
+    clearEmailConfirmedFlag();
     showLogoutToast();
     if (wasOnFhconnect) {
       setTimeout(() => router.replace("/home"), 1000);
     }
     supabase.auth.signOut().then(refreshAuth).catch(refreshAuth);
-  }, [refreshAuth, pathname, showLogoutToast, router]);
+  }, [refreshAuth, pathname, showLogoutToast, clearEmailConfirmedFlag, router]);
 
   const avatarUrl = profile?.avatar_path
     ? getAvatarUrl(profile.avatar_path, profile.updated_at)
