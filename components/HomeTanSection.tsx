@@ -1,328 +1,36 @@
 "use client";
 
-import { MapPin, BookOpen, Users, Plus } from "lucide-react";
-import { InstagramIcon } from "@/components/SocialIcons";
+import { Plus } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { useState } from "react";
+import {
+  COLUMNS,
+  JOIN_US_CONTENT,
+  LEARN_ABOUT_US_CONTENT,
+  CONNECT_WITH_US_CONTENT,
+} from "@/content/homeTanSection";
 
-/** Expandable content for Join us. campus items */
-const JOIN_US_CONTENT: Record<string, React.ReactNode> = {
-  "Central Campus": (
-    <div className="grid w-max max-w-full grid-cols-1 gap-2 text-center">
-      <Link
-        href="https://www.google.com/maps/search/?api=1&query=2638+Salome+Church+Road+Charlotte+NC+28262"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-xs font-semibold tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span>2638 Salome Church Road</span>
-        <span>Charlotte NC 28262</span>
-      </Link>
-      <Link
-        href="#"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-center text-xs tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span className="font-semibold">Sunday Services</span>
-        <span className="font-normal">9:15a + 11a</span>
-      </Link>
-      <Link
-        href="https://instagram.com/freedomhouse"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-      >
-        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        @freedomhouse
-      </Link>
-    </div>
-  ),
-  "South End Campus": (
-    <div className="grid w-max max-w-full grid-cols-1 gap-2 text-center">
-      <Link
-        href="https://www.google.com/maps/search/?api=1&query=3000+Griffith+Street+Charlotte+NC+28203"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-xs font-semibold tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span>3000 Griffith Street</span>
-        <span>Charlotte NC 28203</span>
-      </Link>
-      <Link
-        href="#"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-center text-xs tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span className="font-semibold">Sunday Services</span>
-        <span className="font-normal">9:15a + 11a</span>
-      </Link>
-      <Link
-        href="https://instagram.com/freedomhousesouthend"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-      >
-        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        @freedomhousesouthend
-      </Link>
-    </div>
-  ),
-  "Lake Norman Campus": (
-    <div className="grid w-max max-w-full grid-cols-1 gap-2 text-center">
-      <Link
-        href="https://www.google.com/maps/search/?api=1&query=20310+Sefton+Park+Road+Cornelius+NC+28031"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-xs font-semibold tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span>20310 Sefton Park Road</span>
-        <span>Cornelius NC 28031</span>
-      </Link>
-      <Link
-        href="#"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-center text-xs tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span className="font-semibold">Sunday Services</span>
-        <span className="font-normal">9:15a + 11a</span>
-      </Link>
-      <Link
-        href="https://instagram.com/freedomhouselkn"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-      >
-        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        @freedomhouselkn
-      </Link>
-    </div>
-  ),
-  "Ballantyne Campus": (
-    <div className="grid w-max max-w-full grid-cols-1 gap-2 text-center">
-      <Link
-        href="https://www.google.com/maps/search/?api=1&query=1041+Red+Ventures+Drive+Fort+Mill+SC+29707"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-xs font-semibold tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span>1041 Red Ventures Drive</span>
-        <span>Fort Mill SC 29707</span>
-      </Link>
-      <Link
-        href="#"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-center text-xs tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span className="font-semibold">Sunday Services</span>
-        <span className="font-normal">9:15a + 11a</span>
-      </Link>
-      <Link
-        href="https://instagram.com/freedomhouseballantyne"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full items-center justify-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-      >
-        <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        @freedomhouseballantyne
-      </Link>
-      <Link
-        href="#"
-        className="flex w-full items-center justify-center rounded border border-brand-black/20 bg-emerald-600 px-3 py-2 text-xs font-semibold tracking-tight text-brand-white hover:bg-emerald-500"
-      >
-        Learn more
-      </Link>
-    </div>
-  ),
-  "Online Campus": (
-    <div className="grid w-max max-w-full grid-cols-1 gap-2 text-center">
-      <Link
-        href="https://freedomhouse.cc/live"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-xs font-semibold tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span>Watch live at</span>
-        <span>FreedomHouse.cc/live</span>
-      </Link>
-      <Link
-        href="#"
-        className="flex w-full flex-col items-center justify-center rounded border border-brand-black/20 bg-brand-white px-3 py-2 text-center text-xs tracking-tight text-brand-black hover:border-brand-tan hover:bg-brand-tan hover:text-brand-black"
-      >
-        <span className="font-semibold">Sunday Services</span>
-        <span className="font-normal">9:15a + 11a</span>
-      </Link>
-    </div>
-  ),
-};
-
-/** Expandable content for Learn about us. items */
-const LEARN_ABOUT_US_CONTENT: Record<string, React.ReactNode> = {
-  "Vision + Beliefs": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        Learn about what we believe, read our vision statement, and what are our
-        core values as a church.
-      </p>
-    </div>
-  ),
-  "Become a Member": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        Get On Track is our pathway to membership at Freedom House. Your first
-        step is to connect with one of our campus teams at one of our Get On
-        Track dinners.
-      </p>
-    </div>
-  ),
-  "Kids + Students + Young Adults": (
-    <div className="space-y-3 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <div>
-        <p>
-          <span className="font-semibold">FHKids:</span> We've created
-          experiences for each grade level from 6 weeks to 12th grade to
-          introduce them to Jesus and help them learn the Bible through engaging
-          lessons and fun activities!
-        </p>
-        <p className="mt-1.5">
-          <Link
-            href="https://instagram.com/freedomhouse_kids"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-          >
-            <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            @freedomhouse_kids
-          </Link>
-        </p>
-      </div>
-      <div>
-        <p>
-          <span className="font-semibold">Vertical Youth:</span> Crazy games,
-          relevant messages, fun times! Vertical is the student ministry of
-          Freedom House for grades 7 through 12. Join us!
-        </p>
-        <p className="mt-1.5">
-          <Link
-            href="https://instagram.com/verticalfh"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-          >
-            <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            @verticalfh
-          </Link>
-        </p>
-      </div>
-      <div>
-        <p>
-          <span className="font-semibold">MVMNT Young Adults:</span> MVMNT is
-          the community of young adults at Freedom House Church. If you are
-          between the ages of 18 to 29, we hope you'll be a part of a MVMNT
-          LifeGroup, attend a House Party, and dive into this exciting young
-          adult community.
-        </p>
-        <p className="mt-1.5">
-          <Link
-            href="https://instagram.com/fhmvmnt"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex w-max items-center gap-1.5 rounded border-0 px-2 py-1 text-xs font-semibold tracking-tight text-white shadow-sm transition-[filter] hover:brightness-110 [background:linear-gradient(135deg,#Ffd600,#ff7a00,#ff0069,#d300c5,#7638fa)]"
-          >
-            <InstagramIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            @fhmvmnt
-          </Link>
-        </p>
-      </div>
-    </div>
-  ),
-  "Upcoming Events": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        Stay up-to-date with all that's happening at Freedom House!
-      </p>
-    </div>
-  ),
-};
-
-/** Expandable content for Connect with us. items */
-const CONNECT_WITH_US_CONTENT: Record<string, React.ReactNode> = {
-  "Find Your Community": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        LifeGroups will meet all over Charlotte, every day of the week to do
-        life together! Study groups, social groups, and more — there's a
-        LifeGroup for you!
-      </p>
-    </div>
-  ),
-  "Strong Men": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        Our Strong men's movement hosts two types of events periodically
-        throughout the year: Strong Saturdays and Strong Men's Breakfasts.
-      </p>
-    </div>
-  ),
-  "Authentic Women": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        Freedom House Church is about equipping people to experience Christ's
-        freedom every day. And through AUTHENTIC we are freeing women to be all
-        God has called them to be.
-      </p>
-    </div>
-  ),
-  "Get Involved": (
-    <div className="space-y-2 px-1 text-left text-xs tracking-tight text-brand-black/90">
-      <p>
-        Serving is our win! Freedom House is supported by our Dream Team
-        volunteer teams spanning over 25 different areas. Find a serve to
-        utilize your gifts.
-      </p>
-      <p>
-        Find opportunities to serve in the Charlotte community through numerous
-        outreach organizations we partner with.
-      </p>
-    </div>
-  ),
-};
-
-const COLUMNS = [
-  {
-    title: "Join us.",
-    icon: MapPin,
-    image: "/home/join-us.jpg",
-    items: [
-      "Central Campus",
-      "South End Campus",
-      "Lake Norman Campus",
-      "Ballantyne Campus",
-      "Online Campus",
-    ],
-  },
-  {
-    title: "Learn about us.",
-    icon: BookOpen,
-    image: "/home/learn-about-us.jpg",
-    items: [
-      "Vision + Beliefs",
-      "Become a Member",
-      "Kids + Students + Young Adults",
-      "Upcoming Events",
-    ],
-  },
-  {
-    title: "Connect with us.",
-    icon: Users,
-    image: "/home/connect-with-us.jpg",
-    items: [
-      "Find Your Community",
-      "Strong Men",
-      "Authentic Women",
-      "Get Involved",
-    ],
-  },
-] as const;
+function getExpandableContent(
+  columnTitle: string,
+  item: string
+): React.ReactNode {
+  if (columnTitle === "Join us." && item in JOIN_US_CONTENT) {
+    return JOIN_US_CONTENT[item];
+  }
+  if (columnTitle === "Learn about us." && item in LEARN_ABOUT_US_CONTENT) {
+    return LEARN_ABOUT_US_CONTENT[item];
+  }
+  if (columnTitle === "Connect with us." && item in CONNECT_WITH_US_CONTENT) {
+    return CONNECT_WITH_US_CONTENT[item];
+  }
+  return (
+    <p className="text-xs tracking-tight text-brand-black/80">
+      Placeholder content for {item}.
+    </p>
+  );
+}
 
 export default function HomeTanSection() {
-  /** One open item key per column (column title -> item key). */
   const [openByColumn, setOpenByColumn] = useState<Record<string, string | null>>({});
 
   function toggle(columnTitle: string, key: string) {
@@ -353,7 +61,7 @@ export default function HomeTanSection() {
                   />
                 </div>
                 <div className="px-5 py-4">
-                  <h2 className="mb-3 flex items-center justify-between gap-2 text-xl font-bold tracking-tight text-brand-black leading-[1.25rem]">
+                  <h2 className="mb-3 flex items-center justify-between gap-2 text-xl font-bold leading-[1.25rem] tracking-tight text-brand-black">
                     <span>{col.title}</span>
                     <Icon className="h-6 w-6 shrink-0" aria-hidden />
                   </h2>
@@ -369,7 +77,7 @@ export default function HomeTanSection() {
                             <button
                               type="button"
                               onClick={() => toggle(col.title, key)}
-                              className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:text-brand-tan leading-[0.875rem]"
+                              className="flex w-full items-center justify-between gap-2 py-2 text-left text-sm font-medium leading-[0.875rem] tracking-tight text-brand-black hover:text-brand-tan"
                             >
                               <span className="font-semibold">{item}</span>
                               <span className="flex shrink-0 items-center gap-2">
@@ -391,17 +99,7 @@ export default function HomeTanSection() {
                             >
                               <div className="min-h-0 overflow-hidden">
                                 <div className="flex justify-center border-t border-brand-black/10 py-2">
-                                  {col.title === "Join us." && JOIN_US_CONTENT[item] ? (
-                                    JOIN_US_CONTENT[item]
-                                  ) : col.title === "Learn about us." && LEARN_ABOUT_US_CONTENT[item] ? (
-                                    LEARN_ABOUT_US_CONTENT[item]
-                                  ) : col.title === "Connect with us." && CONNECT_WITH_US_CONTENT[item] ? (
-                                    CONNECT_WITH_US_CONTENT[item]
-                                  ) : (
-                                    <p className="text-xs tracking-tight text-brand-black/80">
-                                      Placeholder content for {item}.
-                                    </p>
-                                  )}
+                                  {getExpandableContent(col.title, item)}
                                 </div>
                               </div>
                             </div>

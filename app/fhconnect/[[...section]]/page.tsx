@@ -7,24 +7,16 @@ import { getProfile, getAvatarUrl, uploadAvatar, type Profile } from "@/lib/auth
 import AvatarCropModal from "@/components/AvatarCropModal";
 import AuthModal from "@/components/AuthModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
-
-const SECTIONS = ["Account", "Profile", "Giving", "Groups", "Serving"] as const;
-type Section = (typeof SECTIONS)[number];
-const SECTION_SLUGS = SECTIONS.map((s) => s.toLowerCase());
-
-const SECTION_HEADERS: Record<Section, string> = {
-  Account: "Account Settings",
-  Profile: "Profile Information",
-  Giving: "My Giving",
-  Groups: "My Groups",
-  Serving: "My Serves",
-};
-
-function sectionFromSlug(slug: string | undefined): Section {
-  if (!slug) return "Account";
-  const i = SECTION_SLUGS.indexOf(slug);
-  return i >= 0 ? SECTIONS[i] : "Account";
-}
+import HouseholdSection from "@/components/HouseholdSection";
+import FHConnectSectionSelector from "@/components/FHConnectSectionSelector";
+import FHConnectProfileCard from "@/components/FHConnectProfileCard";
+import FHConnectAccountSection from "@/components/FHConnectAccountSection";
+import FHConnectPlaceholderSection from "@/components/FHConnectPlaceholderSection";
+import {
+  SECTION_HEADERS,
+  sectionFromSlug,
+  type Section,
+} from "@/constants/fhconnectSections";
 
 export default function FHConnectPage() {
   const router = useRouter();
@@ -38,6 +30,9 @@ export default function FHConnectPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [messageEntered, setMessageEntered] = useState(false);
+  const [messageExiting, setMessageExiting] = useState(false);
+  const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -46,6 +41,7 @@ export default function FHConnectPage() {
   const cropSourceUrlRef = useRef<string | null>(null);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [gateAuthModalOpen, setGateAuthModalOpen] = useState(false);
+  const [nameEditing, setNameEditing] = useState(false);
 
   const selectorContainerRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +60,9 @@ export default function FHConnectPage() {
   }, [section]);
 
   const refreshAuth = useCallback(async () => {
-    const { data: { user: u } } = await supabase.auth.getUser();
+    const {
+      data: { user: u },
+    } = await supabase.auth.getUser();
     setUser(u ? { id: u.id, email: u.email ?? undefined } : null);
     if (u) {
       const p = await getProfile(u.id);
@@ -84,7 +82,9 @@ export default function FHConnectPage() {
       if (cancelled) return;
       setLoading(false);
     });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => refreshAuth());
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => refreshAuth());
     return () => {
       cancelled = true;
       subscription.unsubscribe();
@@ -97,6 +97,38 @@ export default function FHConnectPage() {
       router.replace("/fhconnect/account");
     }
   }, [loading, segment, router]);
+
+  useEffect(() => {
+    if (!message) {
+      setMessageEntered(false);
+      setMessageExiting(false);
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+        messageTimeoutRef.current = null;
+      }
+      return;
+    }
+    setMessageExiting(false);
+    const enterId = requestAnimationFrame(() => setMessageEntered(true));
+    messageTimeoutRef.current = setTimeout(() => setMessageExiting(true), 3000);
+    return () => {
+      cancelAnimationFrame(enterId);
+      if (messageTimeoutRef.current) {
+        clearTimeout(messageTimeoutRef.current);
+        messageTimeoutRef.current = null;
+      }
+    };
+  }, [message]);
+
+  useEffect(() => {
+    if (!messageExiting) return;
+    const t = setTimeout(() => {
+      setMessage(null);
+      setMessageEntered(false);
+      setMessageExiting(false);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [messageExiting]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -146,6 +178,26 @@ export default function FHConnectPage() {
       setSaving(false);
       return;
     }
+    if (
+      profile?.person_id &&
+      (updates.first_name !== undefined || updates.last_name !== undefined)
+    ) {
+      const personUpdates: { first_name?: string; last_name?: string; updated_at: string } = {
+        updated_at: new Date().toISOString(),
+      };
+      if (updates.first_name !== undefined) personUpdates.first_name = updates.first_name;
+      if (updates.last_name !== undefined) personUpdates.last_name = updates.last_name;
+      const { error: personError } = await supabase
+        .schema("connect")
+        .from("people")
+        .update(personUpdates)
+        .eq("id", profile.person_id);
+      if (personError) {
+        setMessage({ type: "error", text: personError.message });
+        setSaving(false);
+        return;
+      }
+    }
     if (avatarFile) {
       const result = await uploadAvatar(user.id, avatarFile, profile?.avatar_path);
       if ("error" in result) {
@@ -158,6 +210,7 @@ export default function FHConnectPage() {
     setMessage({ type: "success", text: "Profile updated." });
     setAvatarFile(null);
     setAvatarPreview(null);
+    setNameEditing(false);
     refreshAuth();
   };
 
@@ -165,21 +218,23 @@ export default function FHConnectPage() {
     router.push(`/fhconnect/${tab.toLowerCase()}`);
   };
 
-  const avatarUrl = profile?.avatar_path ? getAvatarUrl(profile.avatar_path, profile.updated_at) : null;
+  const avatarUrl = profile?.avatar_path
+    ? getAvatarUrl(profile.avatar_path, profile.updated_at)
+    : null;
   const displayUrl = avatarPreview || avatarUrl;
 
   if (!user && !loading && !changePasswordOpen) {
     return (
       <main className="min-h-screen bg-black-950 tracking-tight text-brand-white">
-        <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6 flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-6 sm:px-6">
           <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-brand-white sm:text-3xl">
             FHConnect
           </h1>
-          <div className="rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black px-6 py-8 text-center max-w-md">
+          <div className="max-w-md rounded-3xl border border-brand-black bg-brand-white px-6 py-8 text-center text-brand-black shadow-lg">
             <h2 className="mb-3 text-xl font-bold tracking-tight text-brand-black">
               Sign in required
             </h2>
-            <p className="mb-6 text-brand-black/80 tracking-tight text-sm">
+            <p className="mb-6 text-sm tracking-tight text-brand-black/80">
               You must be logged in to access FHConnect. Log in or create an account to continue.
             </p>
             <button
@@ -202,45 +257,21 @@ export default function FHConnectPage() {
 
   return (
     <main className="min-h-screen bg-black-950 tracking-tight text-brand-white">
-      <div className="mx-auto max-w-2xl px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-brand-white sm:text-3xl">
           FHConnect
         </h1>
-        {/* Section selector */}
-        <div className="mb-6 flex justify-center">
-          <div
-            ref={selectorContainerRef}
-            className="relative inline-flex flex-wrap justify-center gap-1 rounded-full border border-brand-black bg-brand-white p-1 min-h-[44px]"
-            role="tablist"
-            aria-label="FHConnect sections"
-          >
-            {sliderStyle && (
-              <div
-                className="absolute top-1 bottom-1 rounded-full bg-brand-tan transition-all duration-200 ease-out"
-                style={{ left: sliderStyle.left, width: sliderStyle.width }}
-                aria-hidden
-              />
-            )}
-            {SECTIONS.map((tab) => (
-              <button
-                key={tab}
-                ref={section === tab ? activeTabRef : undefined}
-                type="button"
-                role="tab"
-                aria-selected={section === tab}
-                onClick={() => goToSection(tab)}
-                className={`relative z-10 min-h-[40px] min-w-[44px] rounded-full px-4 py-2 text-sm font-bold tracking-tight text-brand-black transition-colors hover:bg-brand-black/5 ${
-                  section === tab ? "text-brand-black" : ""
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-        </div>
 
-        <div className="overflow-hidden rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black">
-          {loading ? (
+        <FHConnectSectionSelector
+          section={section}
+          onSectionChange={goToSection}
+          selectorContainerRef={selectorContainerRef}
+          activeTabRef={activeTabRef}
+          sliderStyle={sliderStyle}
+        />
+
+        {loading ? (
+          <div className="overflow-hidden rounded-3xl border border-brand-black bg-brand-white shadow-lg text-brand-black">
             <div className="px-5 py-6">
               <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
                 {SECTION_HEADERS[section]}
@@ -249,112 +280,61 @@ export default function FHConnectPage() {
                 <p className="tracking-tight text-brand-black/70">Loading…</p>
               </div>
             </div>
-          ) : section === "Account" && user ? (
-            <div className="px-5 py-6">
-              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
-                {SECTION_HEADERS[section]}
-              </h2>
-              <label className="mb-4 block">
-                <span className="mb-1 block text-sm font-medium tracking-tight">Email</span>
-                <input
-                  type="email"
-                  value={profile?.email ?? user.email ?? ""}
-                  readOnly
-                  className="w-full rounded border border-brand-black/10 bg-brand-black/5 px-3 py-2 text-brand-black/70 tracking-tight"
-                />
-              </label>
-              <button
-                type="button"
-                onClick={() => setChangePasswordOpen(true)}
-                className="rounded bg-brand-black px-4 py-2 text-sm font-semibold tracking-tight text-brand-white hover:bg-brand-black/90"
+          </div>
+        ) : section === "Profile" && user ? (
+          <>
+            {message && (
+              <p
+                role="alert"
+                className={`mb-4 rounded px-3 py-2 text-sm tracking-tight transition-all duration-200 ease-out ${
+                  message.type === "error"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-green-100 text-green-800"
+                } ${
+                  !messageEntered
+                    ? "-translate-y-2 opacity-0"
+                    : messageExiting
+                      ? "translate-y-2 opacity-0"
+                      : "translate-y-0 opacity-100"
+                }`}
               >
-                Change password
-              </button>
-            </div>
-          ) : section === "Profile" && user ? (
-            <form onSubmit={handleSubmit} className="px-5 py-6">
-              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
-                {SECTION_HEADERS[section]}
-              </h2>
-              {message && (
-                <p
-                  className={`mb-4 rounded px-3 py-2 text-sm tracking-tight ${
-                    message.type === "error" ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
-                  }`}
-                >
-                  {message.text}
-                </p>
+                {message.text}
+              </p>
+            )}
+            <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
+              <FHConnectProfileCard
+                section={section}
+                profile={profile}
+                firstName={firstName}
+                lastName={lastName}
+                nameEditing={nameEditing}
+                onFirstNameChange={setFirstName}
+                onLastNameChange={setLastName}
+                onNameEditingChange={setNameEditing}
+                displayUrl={displayUrl}
+                onAvatarChange={handleAvatarChange}
+                onSubmit={handleSubmit}
+                saving={saving}
+              />
+              {profile?.person_id && (
+                <div className="min-w-0 overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">
+                  <HouseholdSection
+                    personId={profile.person_id}
+                    onMessage={(type, text) => setMessage({ type, text })}
+                  />
+                </div>
               )}
-
-              <div className="flex flex-col items-center gap-6">
-                <div className="relative">
-                  {displayUrl ? (
-                    <img
-                      src={displayUrl}
-                      alt="Profile"
-                      className="h-24 w-24 rounded-full object-cover ring-2 ring-brand-tan"
-                    />
-                  ) : (
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-tan/30 text-2xl font-semibold text-brand-black">
-                      {profile ? `${(profile.first_name || "").charAt(0)}${(profile.last_name || "").charAt(0)}` : "?"}
-                    </div>
-                  )}
-                  <label className="absolute bottom-0 right-0 flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-brand-black text-brand-white shadow">
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,image/gif"
-                      className="sr-only"
-                      onChange={handleAvatarChange}
-                    />
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    </svg>
-                  </label>
-                </div>
-
-                <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-medium tracking-tight">First name</span>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full rounded border border-brand-black/20 px-3 py-2 text-brand-black tracking-tight"
-                      autoComplete="given-name"
-                    />
-                  </label>
-                  <label className="block">
-                    <span className="mb-1 block text-sm font-medium tracking-tight">Last name</span>
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full rounded border border-brand-black/20 px-3 py-2 text-brand-black tracking-tight"
-                      autoComplete="family-name"
-                    />
-                  </label>
-                </div>
-              </div>
-
-              <div className="mt-6 flex flex-col gap-2 border-t border-brand-black/10 pt-4">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="w-full rounded bg-brand-black px-4 py-2 text-sm font-semibold tracking-tight text-brand-white hover:bg-brand-black/90 disabled:opacity-50"
-                >
-                  {saving ? "Saving…" : "Save changes"}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <div className="px-5 py-6">
-              <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">
-                {SECTION_HEADERS[section]}
-              </h2>
-              <p className="text-center text-brand-black/70 tracking-tight">{section} content coming soon.</p>
             </div>
-          )}
-        </div>
+          </>
+        ) : section === "Account" && user ? (
+          <FHConnectAccountSection
+            section={section}
+            email={profile?.email ?? user.email ?? ""}
+            onChangePasswordClick={() => setChangePasswordOpen(true)}
+          />
+        ) : (
+          <FHConnectPlaceholderSection section={section} />
+        )}
       </div>
 
       {cropSourceUrl && (
