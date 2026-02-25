@@ -69,7 +69,7 @@ export default function FHConnectProfileCard({
                 className="h-[116px] w-[116px] rounded-full object-cover ring-2 ring-brand-tan transition-[box-shadow] duration-200 ease-out group-hover:ring-4"
               />
             ) : (
-              <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-tan/30 text-2xl font-semibold text-brand-black ring-2 ring-brand-tan transition-[box-shadow] duration-200 ease-out group-hover:ring-4">
+              <div className="flex h-[116px] w-[116px] items-center justify-center rounded-full bg-brand-tan/30 text-2xl font-semibold text-brand-black ring-2 ring-brand-tan transition-[box-shadow] duration-200 ease-out group-hover:ring-4">
                 {profile
                   ? `${(profile.first_name || "").charAt(0)}${(profile.last_name || "").charAt(0)}`
                   : "?"}

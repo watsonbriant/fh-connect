@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import supabase from "@/lib/supabase";
 
 export type AuthModalView = "login" | "register" | "forgot";
@@ -13,11 +14,14 @@ type AuthModalProps = {
 
 const ANIMATION_DURATION_MS = 200;
 
+const POST_AUTH_REDIRECT = "/fhconnect";
+
 export default function AuthModal({
   isOpen,
   onClose,
   onAuthChange,
 }: AuthModalProps) {
+  const router = useRouter();
   const [view, setView] = useState<AuthModalView>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -96,6 +100,7 @@ export default function AuthModal({
       onAuthChange();
       handleClose();
       setLoginSuccess(false);
+      router.push(POST_AUTH_REDIRECT);
     }, 1500);
   };
 
@@ -103,7 +108,7 @@ export default function AuthModal({
     e.preventDefault();
     setLoading(true);
     setMessage(null);
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -113,6 +118,12 @@ export default function AuthModal({
     setLoading(false);
     if (error) {
       showMessage("error", error.message);
+      return;
+    }
+    if (data.session) {
+      onAuthChange();
+      handleClose();
+      router.push(POST_AUTH_REDIRECT);
       return;
     }
     showMessage(
@@ -126,7 +137,7 @@ export default function AuthModal({
     setLoading(true);
     setMessage(null);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: typeof window !== "undefined" ? `${window.location.origin}/` : undefined,
+      redirectTo: typeof window !== "undefined" ? `${window.location.origin}${POST_AUTH_REDIRECT}` : undefined,
     });
     setLoading(false);
     if (error) {
