@@ -14,6 +14,15 @@ export type Household = {
 export type HouseholdMemberRole = "head" | "member";
 export type HouseholdRelationship = "married_to" | "in_a_relationship_with" | "parent_of";
 
+export type HouseholdMemberPerson = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  preferred_name: string;
+  avatar_path: string | null;
+};
+
 export type HouseholdMember = {
   id: string;
   household_id: string;
@@ -21,15 +30,13 @@ export type HouseholdMember = {
   role: HouseholdMemberRole;
   relationship: HouseholdRelationship | null;
   created_at: string;
-  person?: {
-    id: string;
-    first_name: string;
-    last_name: string;
-    email: string | null;
-    preferred_name: string;
-    avatar_path: string | null;
-  };
+  person?: HouseholdMemberPerson;
   has_account?: boolean;
+};
+
+/** Raw row from Supabase join; person may be single object or array. */
+type RawHouseholdMemberRow = Omit<HouseholdMember, "person" | "has_account"> & {
+  person?: HouseholdMemberPerson | HouseholdMemberPerson[] | null;
 };
 
 export type HouseholdWithMembers = Household & {
@@ -100,11 +107,19 @@ export async function getMyHousehold(personId: string): Promise<HouseholdWithMem
       : []
   );
 
-  const membersWithAccount = (members ?? []).map((m: HouseholdMember & { person?: unknown }) => ({
-    ...m,
-    person: Array.isArray(m.person) ? m.person[0] : m.person,
-    has_account: accountSet.has(m.person_id),
-  })) as HouseholdMember[];
+  const membersWithAccount: HouseholdMember[] = (members ?? []).map((m: RawHouseholdMemberRow) => {
+    const person = Array.isArray(m.person) ? m.person[0] : m.person ?? undefined;
+    return {
+      id: m.id,
+      household_id: m.household_id,
+      person_id: m.person_id,
+      role: m.role,
+      relationship: m.relationship,
+      created_at: m.created_at,
+      person,
+      has_account: accountSet.has(m.person_id),
+    };
+  });
 
   const firstHead = membersWithAccount.find((m) => m.role === "head");
   const firstHeadLastName =
