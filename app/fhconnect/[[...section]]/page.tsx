@@ -3,13 +3,23 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import supabase from "@/lib/supabase";
-import { getProfile, getAvatarUrl, uploadAvatar, type Profile } from "@/lib/auth";
+import {
+  getProfile,
+  getPerson,
+  getAvatarUrl,
+  uploadAvatar,
+  updatePerson,
+  type Profile,
+  type Person,
+} from "@/lib/auth";
 import AvatarCropModal from "@/components/AvatarCropModal";
 import AuthModal from "@/components/AuthModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
 import HouseholdSection from "@/components/HouseholdSection";
 import FHConnectSectionSelector from "@/components/FHConnectSectionSelector";
-import FHConnectProfileCard from "@/components/FHConnectProfileCard";
+import FHConnectProfileCard, {
+  type ProfileFormState,
+} from "@/components/FHConnectProfileCard";
 import FHConnectAccountSection from "@/components/FHConnectAccountSection";
 import FHConnectPlaceholderSection from "@/components/FHConnectPlaceholderSection";
 import {
@@ -33,15 +43,15 @@ export default function FHConnectPage() {
   const [messageEntered, setMessageEntered] = useState(false);
   const [messageExiting, setMessageExiting] = useState(false);
   const messageTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [person, setPerson] = useState<Person | null>(null);
+  const [profileForm, setProfileForm] = useState<ProfileFormState>({});
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [cropSourceUrl, setCropSourceUrl] = useState<string | null>(null);
   const cropSourceUrlRef = useRef<string | null>(null);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [gateAuthModalOpen, setGateAuthModalOpen] = useState(false);
-  const [nameEditing, setNameEditing] = useState(false);
+  const [profileEditing, setProfileEditing] = useState(false);
 
   const selectorContainerRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -67,12 +77,15 @@ export default function FHConnectPage() {
     if (u) {
       const p = await getProfile(u.id);
       setProfile(p);
-      if (p) {
-        setFirstName(p.first_name ?? "");
-        setLastName(p.last_name ?? "");
+      if (p?.person_id) {
+        const personData = await getPerson(p.person_id);
+        setPerson(personData ?? null);
+      } else {
+        setPerson(null);
       }
     } else {
       setProfile(null);
+      setPerson(null);
     }
   }, []);
 
@@ -92,9 +105,25 @@ export default function FHConnectPage() {
   }, [refreshAuth]);
 
   useEffect(() => {
+    if (!person || profileEditing) return;
+    setProfileForm({
+      prefix: person.prefix ?? null,
+      first_name: person.first_name ?? null,
+      middle_name: person.middle_name ?? null,
+      last_name: person.last_name ?? null,
+      suffix: person.suffix ?? null,
+      preferred_name: person.preferred_name ?? null,
+      phone_number: person.phone_number ?? null,
+      date_of_birth: person.date_of_birth ?? null,
+      gender: person.gender ?? null,
+      marital_status: person.marital_status ?? null,
+    });
+  }, [person, profileEditing]);
+
+  useEffect(() => {
     if (loading) return;
     if (!segment || segment.length === 0) {
-      router.replace("/fhconnect/account");
+      router.replace("/fhconnect/profile");
     }
   }, [loading, segment, router]);
 
@@ -160,43 +189,29 @@ export default function FHConnectPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !profile?.person_id) return;
     setSaving(true);
     setMessage(null);
-    const updates: { first_name?: string; last_name?: string; updated_at: string } = {
-      updated_at: new Date().toISOString(),
-    };
-    if (firstName.trim()) updates.first_name = firstName.trim();
-    if (lastName.trim()) updates.last_name = lastName.trim();
-    const { error: updateError } = await supabase
-      .schema("connect")
-      .from("profiles")
-      .update(updates)
-      .eq("id", user.id);
-    if (updateError) {
-      setMessage({ type: "error", text: updateError.message });
+    const { error: personError } = await updatePerson(
+      profile.person_id,
+      {
+        prefix: profileForm.prefix ?? null,
+        first_name: profileForm.first_name ?? null,
+        middle_name: profileForm.middle_name ?? null,
+        last_name: profileForm.last_name ?? null,
+        suffix: profileForm.suffix ?? null,
+        preferred_name: profileForm.preferred_name ?? null,
+        phone_number: profileForm.phone_number ?? null,
+        date_of_birth: profileForm.date_of_birth ?? null,
+        gender: profileForm.gender ?? null,
+        marital_status: profileForm.marital_status ?? null,
+      },
+      user.id
+    );
+    if (personError) {
+      setMessage({ type: "error", text: personError });
       setSaving(false);
       return;
-    }
-    if (
-      profile?.person_id &&
-      (updates.first_name !== undefined || updates.last_name !== undefined)
-    ) {
-      const personUpdates: { first_name?: string; last_name?: string; updated_at: string } = {
-        updated_at: new Date().toISOString(),
-      };
-      if (updates.first_name !== undefined) personUpdates.first_name = updates.first_name;
-      if (updates.last_name !== undefined) personUpdates.last_name = updates.last_name;
-      const { error: personError } = await supabase
-        .schema("connect")
-        .from("people")
-        .update(personUpdates)
-        .eq("id", profile.person_id);
-      if (personError) {
-        setMessage({ type: "error", text: personError.message });
-        setSaving(false);
-        return;
-      }
     }
     if (avatarFile) {
       const result = await uploadAvatar(user.id, avatarFile, profile?.avatar_path);
@@ -210,7 +225,7 @@ export default function FHConnectPage() {
     setMessage({ type: "success", text: "Profile updated." });
     setAvatarFile(null);
     setAvatarPreview(null);
-    setNameEditing(false);
+    setProfileEditing(false);
     refreshAuth();
   };
 
@@ -305,16 +320,16 @@ export default function FHConnectPage() {
               <FHConnectProfileCard
                 section={section}
                 profile={profile}
-                firstName={firstName}
-                lastName={lastName}
-                nameEditing={nameEditing}
-                onFirstNameChange={setFirstName}
-                onLastNameChange={setLastName}
-                onNameEditingChange={setNameEditing}
+                person={person}
+                form={profileForm}
+                onFormChange={setProfileForm}
+                editing={profileEditing}
+                onEditingChange={setProfileEditing}
                 displayUrl={displayUrl}
                 onAvatarChange={handleAvatarChange}
                 onSubmit={handleSubmit}
                 saving={saving}
+                emailDisplay={profile?.email ?? user?.email ?? ""}
               />
               {profile?.person_id && (
                 <div className="min-w-0 overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">

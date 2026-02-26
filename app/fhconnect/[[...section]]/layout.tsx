@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 
-const SECTIONS = ["account", "profile", "giving", "groups", "serving"] as const;
+const SECTIONS = ["profile", "giving", "groups", "serving", "account"] as const;
 
 function sectionLabel(slug: string | undefined): string {
-  if (!slug) return "Account";
+  if (!slug) return "Profile";
   const lower = slug.toLowerCase();
   const found = SECTIONS.find((s) => s === lower);
-  if (!found) return "Account";
+  if (!found) return "Profile";
+  if (lower === "account") return "Account Settings";
   return found.charAt(0).toUpperCase() + found.slice(1);
 }
 

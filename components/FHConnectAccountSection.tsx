@@ -21,14 +21,19 @@ export default function FHConnectAccountSection({
           {SECTION_HEADERS[section]}
         </h2>
         <label className="mb-4 block">
-          <span className="mb-1 block text-sm font-medium tracking-tight">Email</span>
+          <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
+            Email
+          </span>
           <input
             type="email"
             value={email}
             readOnly
-            className="w-full rounded border border-brand-black/10 bg-brand-black/5 px-3 py-2 text-brand-black/70 tracking-tight"
+            className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight read-only:border-brand-black/10 read-only:bg-brand-black/5"
           />
         </label>
+        <p className="mb-1 text-xs font-bold uppercase tracking-tight text-brand-black/60">
+          Password
+        </p>
         <button
           type="button"
           onClick={onChangePasswordClick}

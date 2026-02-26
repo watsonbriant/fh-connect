@@ -1,5 +1,6 @@
 "use client";
 
+import { Pencil, X } from "lucide-react";
 import { getAvatarUrl } from "@/lib/auth";
 import { MEMBERSHIP_TYPE_LABELS } from "@/constants/household";
 import type { HouseholdMember, HouseholdMembershipType } from "@/lib/households";
@@ -18,20 +19,23 @@ function person(m: HouseholdMember): PersonLike | undefined {
 
 function displayName(m: HouseholdMember): string {
   const p = person(m);
-  return p?.preferred_name || p?.first_name || "—";
+  if (!p) return "—";
+  const first = (p.first_name ?? "").trim();
+  const last = (p.last_name ?? "").trim();
+  return [first, last].filter(Boolean).join(" ") || "—";
 }
 
 type Props = {
   member: HouseholdMember;
   isHead: boolean;
-  onMembershipTypeChange: (member: HouseholdMember, newType: HouseholdMembershipType) => void;
+  onEditRole: (member: HouseholdMember) => void;
   onRemove: (member: HouseholdMember) => void;
 };
 
 export default function HouseholdMemberRow({
   member,
   isHead,
-  onMembershipTypeChange,
+  onEditRole,
   onRemove,
 }: Props) {
   const avatarPath = (member.person as PersonLike)?.avatar_path ?? null;
@@ -39,51 +43,43 @@ export default function HouseholdMemberRow({
   const p = person(member);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded border border-brand-black/10 px-3 py-2">
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded border border-brand-black/20 px-2 py-1.5">
       <div className="flex items-center gap-3">
         {avatarUrl ? (
           <img
             src={avatarUrl}
             alt=""
-            className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-brand-black/10"
+            className="h-8 w-8 shrink-0 rounded-full object-cover ring-1 ring-brand-black/10"
           />
         ) : (
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-tan/30 text-sm font-semibold tracking-tight text-brand-black">
-            {(p?.first_name || "?").charAt(0)}
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-tan/60 text-sm font-semibold uppercase tracking-tight text-brand-black">
+            {((p?.first_name || "?").charAt(0) + (p?.last_name || "").charAt(0)).trim() || "?"}
           </div>
         )}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-medium tracking-tight text-brand-black">{displayName(member)}</span>
-          <span className="inline-flex rounded-full bg-brand-black/10 px-2 py-0.5 text-xs font-medium tracking-tight text-brand-black">
+          <span className="font-bold text-sm tracking-tight text-brand-black">{displayName(member)}</span>
+          <span className="inline-flex rounded-full bg-brand-black/20 px-2 py-0.5 text-[0.625rem] font-bold tracking-tight text-brand-black">
             {MEMBERSHIP_TYPE_LABELS[member.household_membership_type]}
           </span>
-          {member.has_account && (
-            <span className="text-xs tracking-tight text-brand-black/50">Has account</span>
-          )}
         </div>
       </div>
       {isHead && (
-        <div className="flex flex-wrap items-center gap-1">
-          <select
-            value={member.household_membership_type}
-            onChange={(e) =>
-              onMembershipTypeChange(member, e.target.value as HouseholdMembershipType)
-            }
-            className="rounded border border-brand-black/20 px-2 py-1 text-xs tracking-tight text-brand-black"
-            aria-label={`Change membership type for ${displayName(member)}`}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => onEditRole(member)}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-brand-black/20 text-brand-black transition-colors duration-150 hover:bg-brand-black/5 hover:border-brand-black/40"
+            aria-label={`Edit role for ${displayName(member)}`}
           >
-            {(["Head of Household", "Child", "Other"] as const).map((t) => (
-              <option key={t} value={t}>
-                {MEMBERSHIP_TYPE_LABELS[t]}
-              </option>
-            ))}
-          </select>
+            <Pencil className="h-3 w-3" aria-hidden />
+          </button>
           <button
             type="button"
             onClick={() => onRemove(member)}
-            className="text-xs tracking-tight text-red-600 underline transition-colors duration-150 hover:text-red-700"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-red-600/30 text-red-600 transition-colors duration-150 hover:bg-red-50 hover:border-red-600/50"
+            aria-label={`Remove ${displayName(member)} from household`}
           >
-            Remove
+            <X className="h-3 w-3" aria-hidden />
           </button>
         </div>
       )}

@@ -1,0 +1,35 @@
+---
+description: Use custom modals for confirmations and messages instead of browser popups
+alwaysApply: true
+---
+
+# Confirmations and Messages: Use Modals, Not Browser Popups
+
+Do **not** use browser-native dialogs for user-facing confirmations or messages:
+
+- **Avoid:** `alert()`, `confirm()`, `prompt()`
+- **Use instead:** Custom modal components that match the app’s design and UX.
+
+## Why
+
+- Consistent look and behavior across the app
+- Works with existing animations and accessibility patterns
+- Mobile-friendly and controllable (e.g. Escape to close, overlay click)
+- Aligns with project patterns (see e.g. `HouseholdRemoveMemberModal`, `ChangePasswordModal`, `HouseholdEditAddressModal`)
+
+## When Adding Confirmations or Messages
+
+1. **Confirmations** (e.g. “Remove X?”, “Are you sure?”): Build or reuse a small confirmation modal with:
+   - Title and short message
+   - Cancel and Confirm (or primary action) buttons
+   - Same enter/exit animation as other modals (~200ms opacity + scale)
+   - Optional: Escape to cancel, overlay click to cancel
+
+2. **Informational messages** (e.g. success/error after an action): Prefer in-page toasts or inline messages (e.g. the existing message banner on FHConnect) over `alert()`.
+
+3. **User input** that would otherwise use `prompt()`: Use a modal with a form (input + Cancel/Submit) instead.
+
+## Reference
+
+- Existing modal pattern: overlay + content with `transition-opacity duration-200` and `transition-all duration-200 ease-out`; exit by setting `isClosing`, then calling `onClose()` after the duration.
+- Example: `components/HouseholdRemoveMemberModal.tsx` for a confirmation modal; `components/ChangePasswordModal.tsx` for form + animation.

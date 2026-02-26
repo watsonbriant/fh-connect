@@ -2,13 +2,14 @@ import supabase from "@/lib/supabase";
 
 export type Household = {
   id: string;
+  home_campus: string | null;
   street_address: string | null;
   city: string | null;
   state: string | null;
   zip: string | null;
 };
 
-export type HouseholdMembershipType = "Head of Household" | "Child" | "Other";
+export type HouseholdMembershipType = "Head of Household" | "Adult" | "Child" | "Other";
 
 export type HouseholdMemberPerson = {
   id: string;
@@ -53,8 +54,9 @@ export type CampusLocation = {
 
 const MEMBERSHIP_ORDER: Record<HouseholdMembershipType, number> = {
   "Head of Household": 0,
-  Child: 1,
-  Other: 2,
+  Adult: 1,
+  Child: 2,
+  Other: 3,
 };
 
 function sortMembers(members: HouseholdMember[]): HouseholdMember[] {
@@ -85,7 +87,7 @@ export async function getMyHousehold(personId: string): Promise<HouseholdWithMem
   const { data: household, error: hError } = await supabase
     .schema("connect")
     .from("households")
-    .select("id, street_address, city, state, zip")
+    .select("id, home_campus, street_address, city, state, zip")
     .eq("id", householdId)
     .single();
   if (hError || !household) return null;
@@ -157,6 +159,30 @@ export async function updateHousehold(
     })
     .eq("id", householdId);
   return { error: error?.message };
+}
+
+/** Update household home_campus (caller must be a Head). Value should be from getHomeCampusOptions(). */
+export async function updateHouseholdHomeCampus(
+  householdId: string,
+  home_campus: string | null
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .schema("connect")
+    .from("households")
+    .update({ home_campus })
+    .eq("id", householdId);
+  return { error: error?.message };
+}
+
+/** Locations with type = physical_campus (for home campus dropdown only). */
+export async function getHomeCampusOptions(): Promise<CampusLocation[]> {
+  const { data, error } = await supabase
+    .schema("connect")
+    .from("locations")
+    .select("location, address, city, state, zip, type")
+    .eq("type", "physical_campus");
+  if (error) return [];
+  return (data ?? []) as CampusLocation[];
 }
 
 /** Ensure this person has a household (create one if missing). Used after account creation / backfill gap. */
@@ -339,7 +365,7 @@ async function getPersonHouseholdId(personId: string): Promise<string | null> {
 /** Add a non-user to the household (create people row, set household + membership_type). */
 export async function addPersonWithoutAccount(
   householdId: string,
-  membershipType: "Child" | "Other",
+  membershipType: HouseholdMembershipType,
   person: {
     first_name: string;
     last_name: string;

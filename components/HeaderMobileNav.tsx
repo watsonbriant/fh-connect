@@ -144,14 +144,14 @@ export default function HeaderMobileNav({
             </div>
             {accountMenuOpen && (
               <div
-                className="w-full rounded border border-white/20 bg-brand-black/90 py-1"
+                className="w-full rounded border border-white/20 bg-brand-white/90 py-1"
                 role="menu"
               >
                 {hasUser ? (
                   <>
                     <Link
                       href="/fhconnect/account"
-                      className="block px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
+                      className="block px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-black/10"
                       role="menuitem"
                       onClick={onCloseAllMenus}
                     >
@@ -159,7 +159,7 @@ export default function HeaderMobileNav({
                     </Link>
                     <button
                       type="button"
-                      className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
+                      className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-black/10"
                       role="menuitem"
                       onClick={onLogout}
                     >
@@ -169,7 +169,7 @@ export default function HeaderMobileNav({
                 ) : (
                   <button
                     type="button"
-                    className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-white hover:bg-white/10"
+                    className="block w-full px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-black/10"
                     role="menuitem"
                     onClick={onOpenAuthModal}
                   >

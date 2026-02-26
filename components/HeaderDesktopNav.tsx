@@ -82,7 +82,7 @@ export default function HeaderDesktopNav({
                       <Link
                         key={child.label}
                         href={child.href}
-                        className="block px-4 py-1 text-xs tracking-tight text-brand-black hover:bg-brand-tan/80"
+                        className="block px-4 py-1 font-bold text-xs tracking-tight text-brand-black hover:bg-brand-tan/80"
                         role="menuitem"
                       >
                         {child.label}

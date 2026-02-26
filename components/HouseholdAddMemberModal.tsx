@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
+import { TriangleAlert } from "lucide-react";
 import { MEMBERSHIP_TYPE_LABELS } from "@/constants/household";
 import type { HouseholdMembershipType } from "@/lib/households";
 
@@ -11,11 +12,25 @@ type AddByEmailForm = {
   membership_type: HouseholdMembershipType;
 };
 
+const HOUSEHOLD_ROLE_OPTIONS: HouseholdMembershipType[] = [
+  "Head of Household",
+  "Adult",
+  "Child",
+  "Other",
+];
+
+const GENDER_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Select" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+];
+
 export type AddNoAccountForm = {
   first_name: string;
   last_name: string;
-  membership_type: "Child" | "Other";
+  membership_type: HouseholdMembershipType;
   date_of_birth?: string;
+  gender?: string;
   email?: string;
   phone_number?: string;
 };
@@ -32,6 +47,7 @@ type Props = {
   onAddByEmail: (e: React.FormEvent) => void;
   onAddNoAccount: (e: React.FormEvent) => void;
   saving: boolean;
+  inviteByEmailError?: string | null;
 };
 
 export default function HouseholdAddMemberModal({
@@ -46,6 +62,7 @@ export default function HouseholdAddMemberModal({
   onAddByEmail,
   onAddNoAccount,
   saving,
+  inviteByEmailError,
 }: Props) {
   const [isClosing, setIsClosing] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -115,6 +132,17 @@ export default function HouseholdAddMemberModal({
               Add without account
             </button>
           </div>
+          <div
+            className="mt-3 flex items-center gap-2 rounded-lg border border-brand-black/10 bg-brand-tan/50 p-2 text-xs font-bold tracking-tight text-brand-black/80"
+            role="status"
+          >
+            <TriangleAlert className="h-4 w-4 shrink-0 text-brand-black" aria-hidden />
+            <span>
+              {mode === "email"
+                ? "In order to invite someone by email, the person MUST already have an FHConnect account."
+                : "Using this option is for those in your household that don't have their own FHConnect account (children, etc.)."}
+            </span>
+          </div>
         </div>
         <div className="p-5">
           {mode === "email" ? (
@@ -133,7 +161,7 @@ export default function HouseholdAddMemberModal({
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Membership type
+                  Household role
                 </span>
                 <select
                   value={addByEmailForm.membership_type}
@@ -168,6 +196,11 @@ export default function HouseholdAddMemberModal({
                   Cancel
                 </button>
               </div>
+              {inviteByEmailError && (
+                <p className="mt-2 text-xs font-bold tracking-tight text-red-600 bg-red-500/20 px-2 py-1 rounded border border-red-500" role="alert">
+                  {inviteByEmailError}
+                </p>
+              )}
             </form>
           ) : (
             <form onSubmit={onAddNoAccount} className="flex flex-col gap-3">
@@ -197,20 +230,24 @@ export default function HouseholdAddMemberModal({
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Membership type
+                  Household role
                 </span>
                 <select
                   value={addNoAccountForm.membership_type}
                   onChange={(e) =>
                     onAddNoAccountFormChange((f) => ({
                       ...f,
-                      membership_type: e.target.value as "Child" | "Other",
+                      membership_type: e.target.value as HouseholdMembershipType,
                     }))
                   }
                   className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm tracking-tight text-brand-black"
+                  aria-label="Household role"
                 >
-                  <option value="Child">{MEMBERSHIP_TYPE_LABELS.Child}</option>
-                  <option value="Other">{MEMBERSHIP_TYPE_LABELS.Other}</option>
+                  {HOUSEHOLD_ROLE_OPTIONS.map((t) => (
+                    <option key={t} value={t}>
+                      {MEMBERSHIP_TYPE_LABELS[t]}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="block">
@@ -229,29 +266,25 @@ export default function HouseholdAddMemberModal({
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Email (optional)
+                  Gender
                 </span>
-                <input
-                  type="email"
-                  value={addNoAccountForm.email ?? ""}
+                <select
+                  value={addNoAccountForm.gender ?? ""}
                   onChange={(e) =>
-                    onAddNoAccountFormChange((f) => ({ ...f, email: e.target.value || undefined }))
+                    onAddNoAccountFormChange((f) => ({
+                      ...f,
+                      gender: e.target.value || undefined,
+                    }))
                   }
-                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold uppercase tracking-tight text-brand-black/60">
-                  Phone (optional)
-                </span>
-                <input
-                  type="tel"
-                  value={addNoAccountForm.phone_number ?? ""}
-                  onChange={(e) =>
-                    onAddNoAccountFormChange((f) => ({ ...f, phone_number: e.target.value || undefined }))
-                  }
-                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm text-brand-black tracking-tight"
-                />
+                  className="w-full rounded border border-brand-black/20 px-3 py-1 text-sm tracking-tight text-brand-black"
+                  aria-label="Gender"
+                >
+                  {GENDER_OPTIONS.map((opt) => (
+                    <option key={opt.value || "select"} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </label>
               <div className="mt-2 flex gap-2">
                 <button
