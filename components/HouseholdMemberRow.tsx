@@ -43,7 +43,7 @@ export default function HouseholdMemberRow({
   const p = person(member);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded border border-brand-black/20 px-2 py-1.5">
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded bg-brand-black/5 border border-brand-black/20 px-2 py-1.5">
       <div className="flex items-center gap-3">
         {avatarUrl ? (
           <img
@@ -68,7 +68,7 @@ export default function HouseholdMemberRow({
           <button
             type="button"
             onClick={() => onEditRole(member)}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-brand-black/20 text-brand-black transition-colors duration-150 hover:bg-brand-black/5 hover:border-brand-black/40"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-brand-black/20 text-brand-black transition-colors duration-150 bg-brand-white hover:bg-brand-black/10 hover:border-brand-black/40"
             aria-label={`Edit role for ${displayName(member)}`}
           >
             <Pencil className="h-3 w-3" aria-hidden />
@@ -76,7 +76,7 @@ export default function HouseholdMemberRow({
           <button
             type="button"
             onClick={() => onRemove(member)}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-red-600/30 text-red-600 transition-colors duration-150 hover:bg-red-50 hover:border-red-600/50"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-red-600/30 text-red-600 transition-colors duration-150 bg-brand-white hover:bg-red-50 hover:border-red-600/50"
             aria-label={`Remove ${displayName(member)} from household`}
           >
             <X className="h-3 w-3" aria-hidden />

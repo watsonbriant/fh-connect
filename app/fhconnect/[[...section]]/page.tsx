@@ -20,6 +20,7 @@ import FHConnectSectionSelector from "@/components/FHConnectSectionSelector";
 import FHConnectProfileCard, {
   type ProfileFormState,
 } from "@/components/FHConnectProfileCard";
+import FHConnectAboutUsSection from "@/components/FHConnectAboutUsSection";
 import FHConnectAccountSection from "@/components/FHConnectAccountSection";
 import FHConnectPlaceholderSection from "@/components/FHConnectPlaceholderSection";
 import {
@@ -52,6 +53,10 @@ export default function FHConnectPage() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [gateAuthModalOpen, setGateAuthModalOpen] = useState(false);
   const [profileEditing, setProfileEditing] = useState(false);
+  const [aboutEditing, setAboutEditing] = useState(false);
+  const [aboutEnneagram, setAboutEnneagram] = useState("");
+  const [aboutMyersBriggs, setAboutMyersBriggs] = useState("");
+  const [aboutSaving, setAboutSaving] = useState(false);
 
   const selectorContainerRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
@@ -103,6 +108,12 @@ export default function FHConnectPage() {
       subscription.unsubscribe();
     };
   }, [refreshAuth]);
+
+  useEffect(() => {
+    if (!aboutEditing) return;
+    setAboutEnneagram(person?.enneagram ?? "");
+    setAboutMyersBriggs(person?.myersbriggs ?? "");
+  }, [aboutEditing, person?.enneagram, person?.myersbriggs]);
 
   useEffect(() => {
     if (!person || profileEditing) return;
@@ -229,6 +240,31 @@ export default function FHConnectPage() {
     refreshAuth();
   };
 
+  const handleAboutUsSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aboutEditing) return;
+    if (!user || !profile?.person_id) return;
+    setAboutSaving(true);
+    setMessage(null);
+    const { error } = await updatePerson(
+      profile.person_id,
+      {
+        enneagram: aboutEnneagram.trim() || null,
+        myersbriggs: aboutMyersBriggs.trim() || null,
+      },
+      user.id
+    );
+    if (error) {
+      setMessage({ type: "error", text: error });
+      setAboutSaving(false);
+      return;
+    }
+    setAboutSaving(false);
+    setMessage({ type: "success", text: "About Me section updated." });
+    setAboutEditing(false);
+    refreshAuth();
+  };
+
   const goToSection = (tab: Section) => {
     router.push(`/fhconnect/${tab.toLowerCase()}`);
   };
@@ -317,20 +353,33 @@ export default function FHConnectPage() {
               </p>
             )}
             <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-              <FHConnectProfileCard
-                section={section}
-                profile={profile}
-                person={person}
-                form={profileForm}
-                onFormChange={setProfileForm}
-                editing={profileEditing}
-                onEditingChange={setProfileEditing}
-                displayUrl={displayUrl}
-                onAvatarChange={handleAvatarChange}
-                onSubmit={handleSubmit}
-                saving={saving}
-                emailDisplay={profile?.email ?? user?.email ?? ""}
-              />
+              <div className="flex min-w-0 flex-col gap-6">
+                <FHConnectProfileCard
+                  section={section}
+                  profile={profile}
+                  person={person}
+                  form={profileForm}
+                  onFormChange={setProfileForm}
+                  editing={profileEditing}
+                  onEditingChange={setProfileEditing}
+                  displayUrl={displayUrl}
+                  onAvatarChange={handleAvatarChange}
+                  onSubmit={handleSubmit}
+                  saving={saving}
+                  emailDisplay={profile?.email ?? user?.email ?? ""}
+                />
+                <FHConnectAboutUsSection
+                  person={person}
+                  enneagram={aboutEnneagram}
+                  onEnneagramChange={setAboutEnneagram}
+                  myersBriggs={aboutMyersBriggs}
+                  onMyersBriggsChange={setAboutMyersBriggs}
+                  editing={aboutEditing}
+                  onEditingChange={setAboutEditing}
+                  onSubmit={handleAboutUsSubmit}
+                  saving={aboutSaving}
+                />
+              </div>
               {profile?.person_id && (
                 <div className="min-w-0 overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">
                   <HouseholdSection

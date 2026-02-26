@@ -25,6 +25,8 @@ export type Person = {
   date_of_birth: string | null;
   gender: string | null;
   marital_status: string | null;
+  enneagram: string | null;
+  myersbriggs: string | null;
   avatar_path: string | null;
 };
 
@@ -46,7 +48,7 @@ export async function getPerson(personId: string): Promise<Person | null> {
     .schema("connect")
     .from("people")
     .select(
-      "id, prefix, first_name, middle_name, last_name, suffix, preferred_name, email, phone_number, date_of_birth, gender, marital_status, avatar_path"
+      "id, prefix, first_name, middle_name, last_name, suffix, preferred_name, email, phone_number, date_of_birth, gender, marital_status, enneagram, myersbriggs, avatar_path"
     )
     .eq("id", personId)
     .single();
@@ -65,6 +67,8 @@ export async function getPerson(personId: string): Promise<Person | null> {
     date_of_birth: (row.date_of_birth as string) ?? null,
     gender: (row.gender as string) ?? null,
     marital_status: (row.marital_status as string) ?? null,
+    enneagram: (row.enneagram as string) ?? null,
+    myersbriggs: (row.myersbriggs as string) ?? null,
     avatar_path: (row.avatar_path as string) ?? null,
   };
 }
@@ -81,6 +85,8 @@ export type PersonUpdates = {
   date_of_birth?: string | null;
   gender?: string | null;
   marital_status?: string | null;
+  enneagram?: string | null;
+  myersbriggs?: string | null;
 };
 
 /** Update person in connect.people. If profileId is set and first_name or last_name changed, also updates connect.profiles. */
