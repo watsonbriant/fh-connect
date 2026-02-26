@@ -27,6 +27,8 @@ export type Person = {
   marital_status: string | null;
   enneagram: string | null;
   myersbriggs: string | null;
+  /** JSONB: array of { category: string, skills: string[] } */
+  skills: { category: string; skills: string[] }[] | null;
   avatar_path: string | null;
 };
 
@@ -48,7 +50,7 @@ export async function getPerson(personId: string): Promise<Person | null> {
     .schema("connect")
     .from("people")
     .select(
-      "id, prefix, first_name, middle_name, last_name, suffix, preferred_name, email, phone_number, date_of_birth, gender, marital_status, enneagram, myersbriggs, avatar_path"
+      "id, prefix, first_name, middle_name, last_name, suffix, preferred_name, email, phone_number, date_of_birth, gender, marital_status, enneagram, myersbriggs, skills, avatar_path"
     )
     .eq("id", personId)
     .single();
@@ -69,8 +71,30 @@ export async function getPerson(personId: string): Promise<Person | null> {
     marital_status: (row.marital_status as string) ?? null,
     enneagram: (row.enneagram as string) ?? null,
     myersbriggs: (row.myersbriggs as string) ?? null,
+    skills: parseSkillsJson(row.skills),
     avatar_path: (row.avatar_path as string) ?? null,
   };
+}
+
+function parseSkillsJson(value: unknown): { category: string; skills: string[] }[] | null {
+  if (value == null) return null;
+  if (!Array.isArray(value)) return null;
+  const result: { category: string; skills: string[] }[] = [];
+  for (const item of value) {
+    if (
+      item != null &&
+      typeof item === "object" &&
+      "category" in item &&
+      "skills" in item &&
+      typeof (item as { category: unknown }).category === "string" &&
+      Array.isArray((item as { skills: unknown }).skills)
+    ) {
+      const cat = (item as { category: string; skills: unknown }).category;
+      const sk = (item as { skills: unknown[] }).skills.filter((s): s is string => typeof s === "string");
+      result.push({ category: cat, skills: sk });
+    }
+  }
+  return result;
 }
 
 /** Editable person fields (all except id). first_name/last_name are also synced to profiles when profileId is provided. */
@@ -87,6 +111,7 @@ export type PersonUpdates = {
   marital_status?: string | null;
   enneagram?: string | null;
   myersbriggs?: string | null;
+  skills?: { category: string; skills: string[] }[] | null;
 };
 
 /** Update person in connect.people. If profileId is set and first_name or last_name changed, also updates connect.profiles. */

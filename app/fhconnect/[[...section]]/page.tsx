@@ -56,6 +56,7 @@ export default function FHConnectPage() {
   const [aboutEditing, setAboutEditing] = useState(false);
   const [aboutEnneagram, setAboutEnneagram] = useState("");
   const [aboutMyersBriggs, setAboutMyersBriggs] = useState("");
+  const [aboutSkills, setAboutSkills] = useState<Record<string, string[]>>({});
   const [aboutSaving, setAboutSaving] = useState(false);
 
   const selectorContainerRef = useRef<HTMLDivElement>(null);
@@ -113,7 +114,12 @@ export default function FHConnectPage() {
     if (!aboutEditing) return;
     setAboutEnneagram(person?.enneagram ?? "");
     setAboutMyersBriggs(person?.myersbriggs ?? "");
-  }, [aboutEditing, person?.enneagram, person?.myersbriggs]);
+    const skillsRecord: Record<string, string[]> = {};
+    for (const { category, skills } of person?.skills ?? []) {
+      skillsRecord[category] = skills;
+    }
+    setAboutSkills(skillsRecord);
+  }, [aboutEditing, person?.enneagram, person?.myersbriggs, person?.skills]);
 
   useEffect(() => {
     if (!person || profileEditing) return;
@@ -246,11 +252,15 @@ export default function FHConnectPage() {
     if (!user || !profile?.person_id) return;
     setAboutSaving(true);
     setMessage(null);
+    const skillsPayload = Object.entries(aboutSkills)
+      .filter(([, skills]) => skills.length > 0)
+      .map(([category, skills]) => ({ category, skills }));
     const { error } = await updatePerson(
       profile.person_id,
       {
         enneagram: aboutEnneagram.trim() || null,
         myersbriggs: aboutMyersBriggs.trim() || null,
+        skills: skillsPayload,
       },
       user.id
     );
@@ -374,6 +384,19 @@ export default function FHConnectPage() {
                   onEnneagramChange={setAboutEnneagram}
                   myersBriggs={aboutMyersBriggs}
                   onMyersBriggsChange={setAboutMyersBriggs}
+                  selectedSkills={aboutSkills}
+                  onSkillsChange={(category, skill, checked) => {
+                    setAboutSkills((prev) => {
+                      const arr = prev[category] ?? [];
+                      const next = { ...prev };
+                      if (checked) next[category] = [...arr, skill];
+                      else {
+                        next[category] = arr.filter((s) => s !== skill);
+                        if (next[category].length === 0) delete next[category];
+                      }
+                      return next;
+                    });
+                  }}
                   editing={aboutEditing}
                   onEditingChange={setAboutEditing}
                   onSubmit={handleAboutUsSubmit}

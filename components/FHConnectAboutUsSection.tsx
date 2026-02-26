@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import type { Person } from "@/lib/auth";
+import { SKILLS_CATEGORIES } from "@/constants/skillsCategories";
 
 const ENNEAGRAM_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
@@ -29,6 +31,9 @@ type Props = {
   onEnneagramChange: (value: string) => void;
   myersBriggs: string;
   onMyersBriggsChange: (value: string) => void;
+  /** Category -> selected skill strings */
+  selectedSkills: Record<string, string[]>;
+  onSkillsChange: (category: string, skill: string, checked: boolean) => void;
   editing: boolean;
   onEditingChange: (editing: boolean) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -41,6 +46,8 @@ export default function FHConnectAboutUsSection({
   onEnneagramChange,
   myersBriggs,
   onMyersBriggsChange,
+  selectedSkills,
+  onSkillsChange,
   editing,
   onEditingChange,
   onSubmit,
@@ -52,10 +59,22 @@ export default function FHConnectAboutUsSection({
   const myersBriggsRaw = myersBriggs.trim() || (person?.myersbriggs ?? "").trim() || "";
   const myersBriggsOption = MYERS_BRIGGS_OPTIONS.find((o) => o.value === myersBriggsRaw);
   const myersBriggsPillLabel = myersBriggsOption
-    ? `${myersBriggsOption.value} - ${myersBriggsOption.label}`
+    ? `${myersBriggsOption.value} – ${myersBriggsOption.label}`
     : myersBriggsRaw
       ? myersBriggsRaw
       : "Not set";
+
+  const displaySkills: Record<string, string[]> = editing
+    ? selectedSkills
+    : (person?.skills ?? []).reduce<Record<string, string[]>>((acc, { category, skills }) => {
+        acc[category] = skills;
+        return acc;
+      }, {});
+
+  const [activeSkillsCategory, setActiveSkillsCategory] = useState(
+    () => SKILLS_CATEGORIES[0]?.category ?? ""
+  );
+  const activeCategoryData = SKILLS_CATEGORIES.find((c) => c.category === activeSkillsCategory);
 
   return (
     <div className="min-w-0 overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">
@@ -158,7 +177,7 @@ export default function FHConnectAboutUsSection({
                     className="h-4 w-4 shrink-0 border-brand-black/30 text-brand-black focus:ring-brand-tan"
                   />
                   <span className="text-sm font-medium tracking-tight text-brand-black">
-                    {opt.value} - {opt.label}
+                    {opt.value} – {opt.label}
                   </span>
                 </label>
               ))}
@@ -176,6 +195,85 @@ export default function FHConnectAboutUsSection({
             </div>
           )}
         </fieldset>
+
+        <div className="mt-3 border-t border-brand-black/20 pt-3">
+          <h2 className="mb-4 text-xl font-bold tracking-tight text-brand-black">Skills</h2>
+          {editing ? (
+            <div className="flex flex-col gap-2 md:flex-row md:gap-4">
+              <nav
+                className="flex shrink-0 flex-row flex-wrap gap-1 overflow-x-auto pb-1 md:flex-col md:flex-nowrap md:overflow-visible"
+                aria-label="Skill categories"
+              >
+                {SKILLS_CATEGORIES.map(({ category }) => (
+                  <button
+                    key={category}
+                    type="button"
+                    onClick={() => setActiveSkillsCategory(category)}
+                    className={`rounded px-2.5 py-0.5 text-left text-xs font-bold tracking-tight transition-colors duration-150 md:py-0.5 md:pr-3 ${
+                      activeSkillsCategory === category
+                        ? "bg-brand-black text-brand-white"
+                        : "bg-brand-black/10 text-brand-black hover:bg-brand-black/20"
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </nav>
+              <div className="min-w-0 flex-1">
+                {activeCategoryData && (
+                  <>
+                    <ul className="flex flex-col gap-1.5">
+                      {activeCategoryData.skills.map((skill) => (
+                        <li key={skill}>
+                          <label className="flex cursor-pointer items-center gap-2 transition-opacity hover:opacity-90">
+                            <input
+                              type="checkbox"
+                              checked={(selectedSkills[activeCategoryData.category] ?? []).includes(skill)}
+                              onChange={(e) =>
+                                onSkillsChange(activeCategoryData.category, skill, e.target.checked)
+                              }
+                              className="h-4 w-4 shrink-0 border-brand-black/30 text-brand-black focus:ring-brand-tan"
+                            />
+                            <span className="text-sm font-medium tracking-tight text-brand-black">
+                              {skill}
+                            </span>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {SKILLS_CATEGORIES.map(({ category }) => {
+                const selected = displaySkills[category] ?? [];
+                if (selected.length === 0) return null;
+                return (
+                  <div key={category} className="flex flex-wrap items-center gap-1">
+                    <span className="pr-1 text-xs font-bold uppercase tracking-tight text-brand-black/60">
+                      {category}
+                    </span>
+                    {selected.map((skill) => (
+                      <span
+                        key={skill}
+                        className="inline-flex rounded-full bg-brand-black/20 px-2 py-0.5 text-[0.625rem] font-bold tracking-tight text-brand-black"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })}
+              {SKILLS_CATEGORIES.every(
+                (c) => (displaySkills[c.category] ?? []).length === 0
+              ) && (
+                <p className="text-sm tracking-tight text-brand-black/80">None selected</p>
+              )}
+            </div>
+          )}
+        </div>
       </form>
     </div>
   );
