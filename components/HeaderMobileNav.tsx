@@ -150,7 +150,7 @@ export default function HeaderMobileNav({
                 {hasUser ? (
                   <>
                     <Link
-                      href="/fhconnect/account"
+                      href="/fhconnect/profile"
                       className="block px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-black/10"
                       role="menuitem"
                       onClick={onCloseAllMenus}

@@ -28,7 +28,7 @@ export const NAV_ITEMS: {
       { label: "MVMNT Young Adults", href: "#" },
       { label: "Strong Men", href: "#" },
       { label: "Authentic Women", href: "#" },
-      { label: "FHConnect", href: "/fhconnect/account" },
+      { label: "FHConnect", href: "/fhconnect/profile" },
     ],
   },
   {

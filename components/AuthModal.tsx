@@ -14,7 +14,7 @@ type AuthModalProps = {
 
 const ANIMATION_DURATION_MS = 200;
 
-const POST_AUTH_REDIRECT = "/fhconnect";
+const POST_AUTH_REDIRECT = "/fhconnect/profile";
 
 export default function AuthModal({
   isOpen,

@@ -414,51 +414,19 @@ export async function updateHouseholdMemberMembershipType(
   return { error: error?.message };
 }
 
-/** Remove a person from the household. If user (has account), create new household and set as Head. If non-user, set household null. If last member, delete household. */
+/** Remove a person from the household. If user (has account), create new household and set as Head. If non-user, set household null. If last member, delete household.
+ * Uses RPC so the server can create a new household (avoids RLS blocking INSERT on households). */
 export async function removeMemberFromHousehold(
   householdId: string,
   personId: string,
   isUser: boolean
 ): Promise<{ error?: string }> {
-  if (isUser) {
-    const { data: newHousehold, error: createErr } = await supabase
-      .schema("connect")
-      .from("households")
-      .insert({})
-      .select("id")
-      .single();
-    if (createErr || !newHousehold) return { error: createErr?.message ?? "Failed to create household." };
-    const { error: updateErr } = await supabase
-      .schema("connect")
-      .from("people")
-      .update({
-        household: newHousehold.id,
-        household_membership_type: "Head of Household",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", personId);
-    if (updateErr) return { error: updateErr.message };
-  } else {
-    const { error: updateErr } = await supabase
-      .schema("connect")
-      .from("people")
-      .update({
-        household: null,
-        household_membership_type: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", personId);
-    if (updateErr) return { error: updateErr.message };
-  }
-
-  const { count } = await supabase
-    .schema("connect")
-    .from("people")
-    .select("id", { count: "exact", head: true })
-    .eq("household", householdId);
-  if (count === 0) {
-    await supabase.schema("connect").from("households").delete().eq("id", householdId);
-  }
+  const { error } = await supabase.schema("connect").rpc("remove_household_member", {
+    p_household_id: householdId,
+    p_person_id: personId,
+    p_is_user: isUser,
+  });
+  if (error) return { error: error.message };
   return {};
 }
 

@@ -119,7 +119,7 @@ export default function HeaderDesktopNav({
             {hasUser ? (
               <>
                 <Link
-                  href="/fhconnect/account"
+                  href="/fhconnect/profile"
                   className="block px-4 py-2 text-left text-sm font-medium tracking-tight text-brand-black hover:bg-brand-tan/80"
                   role="menuitem"
                   onClick={onCloseAccountMenu}
