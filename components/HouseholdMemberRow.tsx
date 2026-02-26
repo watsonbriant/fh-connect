@@ -43,8 +43,8 @@ export default function HouseholdMemberRow({
   const p = person(member);
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2 rounded bg-brand-black/5 border border-brand-black/20 px-2 py-1.5">
-      <div className="flex items-center gap-3">
+    <li className="flex items-center justify-between gap-2 rounded border border-brand-black/20 bg-brand-black/5 px-2 py-1.5">
+      <div className="flex min-w-0 flex-1 items-center gap-3">
         {avatarUrl ? (
           <img
             src={avatarUrl}
@@ -56,15 +56,15 @@ export default function HouseholdMemberRow({
             {((p?.first_name || "?").charAt(0) + (p?.last_name || "").charAt(0)).trim() || "?"}
           </div>
         )}
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-sm tracking-tight text-brand-black">{displayName(member)}</span>
-          <span className="inline-flex rounded-full bg-brand-black/20 px-2 py-0.5 text-[0.625rem] font-bold tracking-tight text-brand-black">
+        <div className="flex min-w-0 flex-wrap items-center gap-0.5">
+          <span className="font-bold text-sm tracking-tight text-brand-black pr-2">{displayName(member)}</span>
+          <span className="inline-flex shrink-0 rounded-full bg-brand-black/20 px-2 py-0.5 text-[0.625rem] font-bold tracking-tight text-brand-black">
             {MEMBERSHIP_TYPE_LABELS[member.household_membership_type]}
           </span>
         </div>
       </div>
       {isHead && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => onEditRole(member)}

@@ -363,7 +363,7 @@ export default function FHConnectPage() {
               </p>
             )}
             <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-              <div className="flex min-w-0 flex-col gap-6">
+              <div className="order-1 min-w-0 md:col-start-1 md:row-start-1">
                 <FHConnectProfileCard
                   section={section}
                   profile={profile}
@@ -378,6 +378,18 @@ export default function FHConnectPage() {
                   saving={saving}
                   emailDisplay={profile?.email ?? user?.email ?? ""}
                 />
+              </div>
+              {profile?.person_id && (
+                <div className="order-2 min-w-0 md:col-start-2 md:row-span-2 md:row-start-1">
+                  <div className="overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">
+                    <HouseholdSection
+                      personId={profile.person_id}
+                      onMessage={(type, text) => setMessage({ type, text })}
+                    />
+                  </div>
+                </div>
+              )}
+              <div className="order-3 min-w-0 md:col-start-1 md:row-start-2">
                 <FHConnectAboutUsSection
                   person={person}
                   enneagram={aboutEnneagram}
@@ -403,14 +415,6 @@ export default function FHConnectPage() {
                   saving={aboutSaving}
                 />
               </div>
-              {profile?.person_id && (
-                <div className="min-w-0 overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">
-                  <HouseholdSection
-                    personId={profile.person_id}
-                    onMessage={(type, text) => setMessage({ type, text })}
-                  />
-                </div>
-              )}
             </div>
           </>
         ) : section === "Account" && user ? (
