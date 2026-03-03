@@ -102,19 +102,26 @@ export async function getMyHousehold(personId: string): Promise<HouseholdWithMem
   }
 
   const personIds = peopleRows.map((p: { id: string }) => p.id);
-  let accountSet = new Set<string>();
-  const { data: idsWithAccount } = await supabase.schema("connect").rpc("person_ids_with_accounts", {
-    person_ids: personIds,
-  });
-  if (Array.isArray(idsWithAccount)) {
-    accountSet = new Set(
-      idsWithAccount
-        .map((id: unknown) =>
-          typeof id === "string" ? id : (id as { person_ids_with_accounts?: string })?.person_ids_with_accounts ?? ""
-        )
-        .filter(Boolean)
-    );
+  const peopleNames = peopleRows.map(
+    (p: Record<string, unknown>) => `${(p.first_name as string) ?? ""} ${(p.last_name as string) ?? ""}`.trim() || p.id
+  );
+  console.log("[Household has_account] connect.people in household (id → name):", personIds.map((id, i) => ({ id, name: peopleNames[i] })));
+
+  const accountSet = new Set<string>();
+  const { data: profilesWithPerson } = await supabase
+    .schema("connect")
+    .from("profiles")
+    .select("person_id")
+    .in("person_id", personIds);
+  console.log("[Household has_account] connect.profiles rows with matching person_id:", profilesWithPerson);
+
+  if (Array.isArray(profilesWithPerson)) {
+    for (const row of profilesWithPerson) {
+      const id = (row as { person_id: string }).person_id;
+      if (id) accountSet.add(id);
+    }
   }
+  console.log("[Household has_account] accountSet (person_ids that have a profile):", Array.from(accountSet));
 
   const members: HouseholdMember[] = peopleRows.map((p: Record<string, unknown>) => ({
     person_id: p.id as string,
@@ -131,6 +138,15 @@ export async function getMyHousehold(personId: string): Promise<HouseholdWithMem
     household_membership_type: (p.household_membership_type as HouseholdMembershipType) ?? "Other",
     has_account: accountSet.has(p.id as string),
   }));
+
+  console.log(
+    "[Household has_account] Result per member:",
+    members.map((m) => ({
+      person_id: m.person_id,
+      name: `${(m.person as { first_name?: string; last_name?: string }).first_name ?? ""} ${(m.person as { first_name?: string; last_name?: string }).last_name ?? ""}`.trim(),
+      has_account: m.has_account,
+    }))
+  );
 
   return {
     ...(household as Household),

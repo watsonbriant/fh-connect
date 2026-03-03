@@ -24,6 +24,7 @@ export default function Header() {
   const [pendingInviteCount, setPendingInviteCount] = useState(0);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const accountMenuRefMobile = useRef<HTMLDivElement>(null);
+  const lastSignedInAtRef = useRef<number>(0);
 
   const refreshAuth = useCallback(async () => {
     const {
@@ -46,9 +47,18 @@ export default function Header() {
 
   useEffect(() => {
     refreshAuth();
+    const IGNORE_SIGNED_OUT_MS = 5000;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => refreshAuth());
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        lastSignedInAtRef.current = Date.now();
+      }
+      if (event === "SIGNED_OUT" && Date.now() - lastSignedInAtRef.current < IGNORE_SIGNED_OUT_MS) {
+        return;
+      }
+      refreshAuth();
+    });
     return () => subscription.unsubscribe();
   }, [refreshAuth]);
 
@@ -98,7 +108,14 @@ export default function Header() {
     if (wasOnFhconnect) {
       setTimeout(() => router.replace("/home"), 1000);
     }
-    supabase.auth.signOut().then(refreshAuth).catch(refreshAuth);
+    const LOGOUT_TIMEOUT_MS = 10000;
+    const signOutWithTimeout = Promise.race([
+      supabase.auth.signOut(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Logout timed out")), LOGOUT_TIMEOUT_MS)
+      ),
+    ]);
+    signOutWithTimeout.then(refreshAuth).catch(refreshAuth);
   }, [refreshAuth, pathname, showLogoutToast, clearEmailConfirmedFlag, router]);
 
   const avatarUrl = profile?.avatar_path

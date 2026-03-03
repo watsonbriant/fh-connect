@@ -1,6 +1,7 @@
 "use client";
 
-import { Pencil, X } from "lucide-react";
+import { useState } from "react";
+import { Pencil, X, UserCheck } from "lucide-react";
 import { getAvatarUrl } from "@/lib/auth";
 import { MEMBERSHIP_TYPE_LABELS } from "@/constants/household";
 import type { HouseholdMember, HouseholdMembershipType } from "@/lib/households";
@@ -25,6 +26,13 @@ function displayName(m: HouseholdMember): string {
   return [first, last].filter(Boolean).join(" ") || "—";
 }
 
+function firstName(m: HouseholdMember): string {
+  const p = person(m);
+  const first = (p?.first_name ?? "").trim();
+  if (first) return first;
+  return displayName(m).split(" ")[0] || "This person";
+}
+
 type Props = {
   member: HouseholdMember;
   isHead: boolean;
@@ -41,6 +49,8 @@ export default function HouseholdMemberRow({
   const avatarPath = (member.person as PersonLike)?.avatar_path ?? null;
   const avatarUrl = getAvatarUrl(avatarPath);
   const p = person(member);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
+  const accountTooltipText = `${firstName(member)} has an FHConnect account.`;
 
   return (
     <li className="flex items-center justify-between gap-2 rounded border border-brand-black/20 bg-brand-black/5 px-2 py-1.5">
@@ -65,6 +75,28 @@ export default function HouseholdMemberRow({
       </div>
       {isHead && (
         <div className="flex shrink-0 items-center gap-2">
+          {member.has_account && (
+            <span
+              onMouseEnter={() => setTooltipVisible(true)}
+              onMouseLeave={() => setTooltipVisible(false)}
+              onFocus={() => setTooltipVisible(true)}
+              onBlur={() => setTooltipVisible(false)}
+              className="relative flex h-6 w-6 shrink-0 cursor-default items-center justify-center rounded border border-brand-black/20 text-brand-black bg-brand-white"
+              aria-label={accountTooltipText}
+              tabIndex={0}
+              role="img"
+            >
+              <UserCheck className="h-3 w-3" aria-hidden />
+              {tooltipVisible && (
+                <span
+                  className="absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 whitespace-nowrap rounded bg-brand-black px-2 py-1 text-xs font-medium tracking-tight text-brand-white shadow-lg"
+                  role="tooltip"
+                >
+                  {accountTooltipText}
+                </span>
+              )}
+            </span>
+          )}
           <button
             type="button"
             onClick={() => onEditRole(member)}

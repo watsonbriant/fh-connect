@@ -13,7 +13,6 @@ import {
   type Person,
 } from "@/lib/auth";
 import AvatarCropModal from "@/components/AvatarCropModal";
-import AuthModal from "@/components/AuthModal";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
 import HouseholdSection from "@/components/HouseholdSection";
 import FHConnectSectionSelector from "@/components/FHConnectSectionSelector";
@@ -23,6 +22,8 @@ import FHConnectProfileCard, {
 import FHConnectAboutUsSection from "@/components/FHConnectAboutUsSection";
 import FHConnectAccountSection from "@/components/FHConnectAccountSection";
 import FHConnectPlaceholderSection from "@/components/FHConnectPlaceholderSection";
+import FHConnectGate from "@/components/FHConnectGate";
+import FHConnectProfileContent from "@/components/FHConnectProfileContent";
 import {
   SECTION_HEADERS,
   sectionFromSlug,
@@ -61,6 +62,7 @@ export default function FHConnectPage() {
 
   const selectorContainerRef = useRef<HTMLDivElement>(null);
   const activeTabRef = useRef<HTMLButtonElement>(null);
+  const lastSignedInAtRef = useRef<number>(0);
   const [sliderStyle, setSliderStyle] = useState<{ left: number; width: number } | null>(null);
 
   useLayoutEffect(() => {
@@ -101,9 +103,18 @@ export default function FHConnectPage() {
       if (cancelled) return;
       setLoading(false);
     });
+    const IGNORE_SIGNED_OUT_MS = 5000;
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => refreshAuth());
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_IN") {
+        lastSignedInAtRef.current = Date.now();
+      }
+      if (event === "SIGNED_OUT" && Date.now() - lastSignedInAtRef.current < IGNORE_SIGNED_OUT_MS) {
+        return;
+      }
+      refreshAuth();
+    });
     return () => {
       cancelled = true;
       subscription.unsubscribe();
@@ -286,33 +297,12 @@ export default function FHConnectPage() {
 
   if (!user && !loading && !changePasswordOpen) {
     return (
-      <main className="min-h-screen bg-black-950 tracking-tight text-brand-white">
-        <div className="mx-auto flex min-h-[60vh] max-w-2xl flex-col items-center justify-center px-4 py-6 sm:px-6">
-          <h1 className="mb-6 text-center text-2xl font-semibold tracking-tight text-brand-white sm:text-3xl">
-            FHConnect
-          </h1>
-          <div className="max-w-md rounded-3xl border border-brand-black bg-brand-white px-6 py-8 text-center text-brand-black shadow-lg">
-            <h2 className="mb-3 text-xl font-bold tracking-tight text-brand-black">
-              Sign in required
-            </h2>
-            <p className="mb-6 text-sm tracking-tight text-brand-black/80">
-              You must be logged in to access FHConnect. Log in or create an account to continue.
-            </p>
-            <button
-              type="button"
-              onClick={() => setGateAuthModalOpen(true)}
-              className="rounded bg-brand-black px-5 py-2.5 text-sm font-semibold tracking-tight text-brand-white hover:bg-brand-black/90"
-            >
-              Log in
-            </button>
-          </div>
-        </div>
-        <AuthModal
-          isOpen={gateAuthModalOpen}
-          onClose={() => setGateAuthModalOpen(false)}
-          onAuthChange={refreshAuth}
-        />
-      </main>
+      <FHConnectGate
+        authModalOpen={gateAuthModalOpen}
+        onOpenAuthModal={() => setGateAuthModalOpen(true)}
+        onCloseAuthModal={() => setGateAuthModalOpen(false)}
+        onAuthChange={refreshAuth}
+      />
     );
   }
 
@@ -343,80 +333,45 @@ export default function FHConnectPage() {
             </div>
           </div>
         ) : section === "Profile" && user ? (
-          <>
-            {message && (
-              <p
-                role="alert"
-                className={`mb-4 rounded px-3 py-2 text-sm tracking-tight transition-all duration-200 ease-out ${
-                  message.type === "error"
-                    ? "bg-red-100 text-red-800"
-                    : "bg-green-100 text-green-800"
-                } ${
-                  !messageEntered
-                    ? "-translate-y-2 opacity-0"
-                    : messageExiting
-                      ? "translate-y-2 opacity-0"
-                      : "translate-y-0 opacity-100"
-                }`}
-              >
-                {message.text}
-              </p>
-            )}
-            <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
-              <div className="order-1 min-w-0 md:col-start-1 md:row-start-1">
-                <FHConnectProfileCard
-                  section={section}
-                  profile={profile}
-                  person={person}
-                  form={profileForm}
-                  onFormChange={setProfileForm}
-                  editing={profileEditing}
-                  onEditingChange={setProfileEditing}
-                  displayUrl={displayUrl}
-                  onAvatarChange={handleAvatarChange}
-                  onSubmit={handleSubmit}
-                  saving={saving}
-                  emailDisplay={profile?.email ?? user?.email ?? ""}
-                />
-              </div>
-              {profile?.person_id && (
-                <div className="order-2 min-w-0 md:col-start-2 md:row-span-2 md:row-start-1">
-                  <div className="overflow-hidden rounded-3xl border border-brand-black bg-brand-white px-5 py-6 shadow-lg text-brand-black">
-                    <HouseholdSection
-                      personId={profile.person_id}
-                      onMessage={(type, text) => setMessage({ type, text })}
-                    />
-                  </div>
-                </div>
-              )}
-              <div className="order-3 min-w-0 md:col-start-1 md:row-start-2">
-                <FHConnectAboutUsSection
-                  person={person}
-                  enneagram={aboutEnneagram}
-                  onEnneagramChange={setAboutEnneagram}
-                  myersBriggs={aboutMyersBriggs}
-                  onMyersBriggsChange={setAboutMyersBriggs}
-                  selectedSkills={aboutSkills}
-                  onSkillsChange={(category, skill, checked) => {
-                    setAboutSkills((prev) => {
-                      const arr = prev[category] ?? [];
-                      const next = { ...prev };
-                      if (checked) next[category] = [...arr, skill];
-                      else {
-                        next[category] = arr.filter((s) => s !== skill);
-                        if (next[category].length === 0) delete next[category];
-                      }
-                      return next;
-                    });
-                  }}
-                  editing={aboutEditing}
-                  onEditingChange={setAboutEditing}
-                  onSubmit={handleAboutUsSubmit}
-                  saving={aboutSaving}
-                />
-              </div>
-            </div>
-          </>
+          <FHConnectProfileContent
+            section={section}
+            message={message}
+            messageEntered={messageEntered}
+            messageExiting={messageExiting}
+            user={user}
+            profile={profile}
+            person={person}
+            profileForm={profileForm}
+            onProfileFormChange={setProfileForm}
+            profileEditing={profileEditing}
+            onProfileEditingChange={setProfileEditing}
+            displayUrl={displayUrl}
+            onAvatarChange={handleAvatarChange}
+            onSubmit={handleSubmit}
+            saving={saving}
+            onMessage={(type, text) => setMessage({ type, text })}
+            aboutEnneagram={aboutEnneagram}
+            onAboutEnneagramChange={setAboutEnneagram}
+            aboutMyersBriggs={aboutMyersBriggs}
+            onAboutMyersBriggsChange={setAboutMyersBriggs}
+            aboutSkills={aboutSkills}
+            onAboutSkillsChange={(category, skill, checked) => {
+              setAboutSkills((prev) => {
+                const arr = prev[category] ?? [];
+                const next = { ...prev };
+                if (checked) next[category] = [...arr, skill];
+                else {
+                  next[category] = arr.filter((s) => s !== skill);
+                  if (next[category].length === 0) delete next[category];
+                }
+                return next;
+              });
+            }}
+            aboutEditing={aboutEditing}
+            onAboutEditingChange={setAboutEditing}
+            onAboutUsSubmit={handleAboutUsSubmit}
+            aboutSaving={aboutSaving}
+          />
         ) : section === "Account" && user ? (
           <FHConnectAccountSection
             section={section}
